@@ -44,8 +44,14 @@ function buildHeaders(config: WorkspaceConfig): Record<string, string> {
     ...config.headers,
   }
 
-  if (config.apiKey && !config.useProxy) {
-    headers['Authorization'] = `Bearer ${config.apiKey}`
+  if (config.apiKey) {
+    if (config.useProxy) {
+      // 使用代理时，通过 X-API-Key header 传递 API Key
+      headers['X-API-Key'] = config.apiKey
+    } else {
+      // 直接请求时，使用 Authorization header
+      headers['Authorization'] = `Bearer ${config.apiKey}`
+    }
   }
 
   return headers
