@@ -5,6 +5,7 @@ import { PromptOptimizer } from '@/components/optimizer/PromptOptimizer'
 import { TestCasePanel } from '@/components/testing/TestCasePanel'
 import { JudgePanel } from '@/components/testing/JudgePanel'
 import { ImageUploader } from './ImageUploader'
+import { VariablesPanel } from './VariablesPanel'
 
 export function PromptBuilder() {
   const {
@@ -286,26 +287,8 @@ export function PromptBuilder() {
         )}
       </div>
 
-      {/* Variables */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium">变量</label>
-        <p className="text-xs text-muted-foreground">
-          在提示词中使用 <code className="bg-muted px-1 rounded">{'{{variable}}'}</code>，发送前会自动替换。
-        </p>
-        {Object.keys(draft.variables).length > 0 && (
-          <div className="space-y-1">
-            {Object.entries(draft.variables).map(([key, value]) => (
-              <div key={key} className="flex items-center gap-2">
-                <span className="text-xs font-mono bg-muted px-2 py-1 rounded">
-                  {key}
-                </span>
-                <span className="text-muted-foreground">=</span>
-                <span className="text-xs truncate">{value}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      {/* Variables Panel */}
+      <VariablesPanel />
 
       {/* Prompt Optimizer */}
       <PromptOptimizer />
