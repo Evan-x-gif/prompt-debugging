@@ -3,6 +3,7 @@ import { Image, Upload, Link, X, Loader2, AlertCircle } from 'lucide-react'
 import type { ImageContent } from '@/types'
 import { generateId } from '@/lib/utils'
 import { cn } from '@/lib/utils'
+import { ImagePreviewModal } from './ImagePreviewModal'
 
 interface ImageUploaderProps {
   images: ImageContent[]
@@ -24,6 +25,7 @@ export function ImageUploader({
   const [showUrlInput, setShowUrlInput] = useState(false)
   const [urlInput, setUrlInput] = useState('')
   const [urlError, setUrlError] = useState('')
+  const [previewImage, setPreviewImage] = useState<ImageContent | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const processFile = useCallback(async (file: File) => {
@@ -201,9 +203,19 @@ export function ImageUploader({
               image={image}
               onUpdate={(updates) => onUpdateImage(image.id, updates)}
               onRemove={() => onRemoveImage(image.id)}
+              onPreview={() => setPreviewImage(image)}
             />
           ))}
         </div>
+      )}
+
+      {/* 图片预览模态框 */}
+      {previewImage && (
+        <ImagePreviewModal
+          imageUrl={previewImage.url}
+          filename={previewImage.filename}
+          onClose={() => setPreviewImage(null)}
+        />
       )}
 
       {/* 添加更多 */}
@@ -287,9 +299,10 @@ interface ImageCardProps {
   image: ImageContent
   onUpdate: (updates: Partial<ImageContent>) => void
   onRemove: () => void
+  onPreview: () => void
 }
 
-function ImageCard({ image, onUpdate, onRemove }: ImageCardProps) {
+function ImageCard({ image, onUpdate, onRemove, onPreview }: ImageCardProps) {
   const displayUrl = image.thumbnail || image.url
 
   return (
@@ -302,7 +315,11 @@ function ImageCard({ image, onUpdate, onRemove }: ImageCardProps) {
       )}
     >
       {/* 图片预览 */}
-      <div className="aspect-square bg-muted flex items-center justify-center">
+      <div 
+        className="aspect-square bg-muted flex items-center justify-center cursor-pointer"
+        onClick={() => image.status === 'ready' && onPreview()}
+        title="点击查看大图"
+      >
         {image.status === 'loading' ? (
           <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
         ) : image.status === 'error' ? (
@@ -311,7 +328,7 @@ function ImageCard({ image, onUpdate, onRemove }: ImageCardProps) {
           <img
             src={displayUrl}
             alt={image.filename || 'image'}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover hover:opacity-90 transition-opacity"
           />
         )}
       </div>
