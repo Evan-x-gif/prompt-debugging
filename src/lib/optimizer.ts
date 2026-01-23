@@ -59,6 +59,23 @@ export interface OptimizationResult {
   generatedSchema?: object
 }
 
+// ========== 历史记录类型 ==========
+export interface OptimizationHistory {
+  id: string
+  timestamp: number
+  strategies: string[]  // 启用的策略名称
+  original: {
+    instructionText: string
+    userMessage: string
+  }
+  optimized: {
+    instructionText: string
+    userMessage: string
+  }
+  diffSummary: string[]
+  riskFlags: string[]
+}
+
 // ========== 优化器 Prompt 模板 ==========
 const OPTIMIZER_SYSTEM_PROMPT = `你是一个专业的 Prompt 优化专家。你的任务是根据用户提供的原始 prompt 和启用的优化策略，生成一个更好的 prompt。
 

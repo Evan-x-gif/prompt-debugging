@@ -1,21 +1,26 @@
 import { useState, useMemo } from 'react'
-import { Sparkles, ChevronDown, ChevronRight, AlertTriangle, CheckCircle, Lightbulb, Loader2, RotateCcw, ArrowRight } from 'lucide-react'
+import { Sparkles, ChevronDown, ChevronRight, AlertTriangle, CheckCircle, Lightbulb, Loader2, RotateCcw, ArrowRight, History, Clock, Trash2 } from 'lucide-react'
 import { usePromptStore } from '@/stores/promptStore'
 import { useWorkspaceStore } from '@/stores/workspaceStore'
+import { useOptimizerHistoryStore } from '@/stores/optimizerHistoryStore'
 import { cn } from '@/lib/utils'
+import { generateId } from '@/lib/utils'
 import {
   DEFAULT_STRATEGIES,
   quickOptimize,
   optimizePrompt,
   type OptimizationStrategy,
   type OptimizationResult,
+  type OptimizationHistory,
 } from '@/lib/optimizer'
 
 export function PromptOptimizer() {
   const { draft, setInstructionText, updateUserSegment } = usePromptStore()
   const { config, params } = useWorkspaceStore()
+  const { history, addHistory, removeHistory, clearHistory } = useOptimizerHistoryStore()
   
   const [expanded, setExpanded] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
   const [strategies, setStrategies] = useState<OptimizationStrategy[]>(DEFAULT_STRATEGIES)
   const [isOptimizing, setIsOptimizing] = useState(false)
   const [result, setResult] = useState<OptimizationResult | null>(null)
@@ -46,6 +51,30 @@ export function PromptOptimizer() {
     try {
       const optimizationResult = await optimizePrompt(draft, strategies, config, params)
       setResult(optimizationResult)
+
+      // 保存到历史记录
+      const userContent = draft.userSegments
+        .filter(s => s.enabled)
+        .map(s => s.text)
+        .join('\n\n')
+
+      const historyRecord: OptimizationHistory = {
+        id: generateId(),
+        timestamp: Date.now(),
+        strategies: strategies.filter(s => s.enabled).map(s => s.name),
+        original: {
+          instructionText: draft.instructionText,
+          userMessage: userContent,
+        },
+        optimized: {
+          instructionText: optimizationResult.optimizedPrompt.instructionText,
+          userMessage: optimizationResult.optimizedPrompt.userSegments[0]?.text || '',
+        },
+        diffSummary: optimizationResult.diffSummary,
+        riskFlags: optimizationResult.riskFlags,
+      }
+
+      addHistory(historyRecord)
     } catch (e) {
       setError((e as Error).message)
     } finally {
@@ -83,6 +112,38 @@ export function PromptOptimizer() {
     })
     setOriginalDraft(null)
     setResult(null)
+  }
+
+  const applyHistoryRecord = (record: OptimizationHistory) => {
+    // 应用历史记录中的优化结果
+    setInstructionText(record.optimized.instructionText)
+    
+    const firstEnabledIndex = draft.userSegments.findIndex(s => s.enabled)
+    if (firstEnabledIndex >= 0) {
+      updateUserSegment(draft.userSegments[firstEnabledIndex].id, {
+        text: record.optimized.userMessage,
+      })
+    }
+
+    setShowHistory(false)
+  }
+
+  const formatTimestamp = (timestamp: number) => {
+    const date = new Date(timestamp)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    
+    if (diffMins < 1) return '刚刚'
+    if (diffMins < 60) return `${diffMins} 分钟前`
+    
+    const diffHours = Math.floor(diffMins / 60)
+    if (diffHours < 24) return `${diffHours} 小时前`
+    
+    const diffDays = Math.floor(diffHours / 24)
+    if (diffDays < 7) return `${diffDays} 天前`
+    
+    return date.toLocaleDateString('zh-CN')
   }
 
   return (
@@ -188,6 +249,24 @@ export function PromptOptimizer() {
                 </>
               )}
             </button>
+            <button
+              onClick={() => setShowHistory(!showHistory)}
+              className={cn(
+                'px-4 py-2 rounded-lg border',
+                showHistory
+                  ? 'border-purple-300 bg-purple-50 dark:bg-purple-900/30 dark:border-purple-700'
+                  : 'border-border hover:bg-accent',
+                'transition-colors relative'
+              )}
+              title="历史记录"
+            >
+              <History className="w-4 h-4" />
+              {history.length > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-purple-500 text-white text-xs rounded-full flex items-center justify-center">
+                  {history.length}
+                </span>
+              )}
+            </button>
             {originalDraft && (
               <button
                 onClick={rollback}
@@ -201,6 +280,76 @@ export function PromptOptimizer() {
               </button>
             )}
           </div>
+
+          {/* 历史记录列表 */}
+          {showHistory && (
+            <div className="space-y-2 p-3 rounded-lg border border-purple-200 dark:border-purple-800 bg-white/50 dark:bg-black/20">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-medium flex items-center gap-1.5">
+                  <History className="w-4 h-4 text-purple-500" />
+                  优化历史 ({history.length}/10)
+                </h4>
+                {history.length > 0 && (
+                  <button
+                    onClick={clearHistory}
+                    className="text-xs text-muted-foreground hover:text-red-500 transition-colors"
+                  >
+                    清空
+                  </button>
+                )}
+              </div>
+
+              {history.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-4">暂无历史记录</p>
+              ) : (
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {history.map((record) => (
+                    <div
+                      key={record.id}
+                      className="p-2 rounded-lg border border-border hover:border-purple-300 dark:hover:border-purple-700 transition-colors cursor-pointer group"
+                      onClick={() => applyHistoryRecord(record)}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <Clock className="w-3 h-3 text-muted-foreground shrink-0" />
+                            <span className="text-xs text-muted-foreground">
+                              {formatTimestamp(record.timestamp)}
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap gap-1 mb-1">
+                            {record.strategies.map((strategy, i) => (
+                              <span
+                                key={i}
+                                className="px-1.5 py-0.5 text-xs rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"
+                              >
+                                {strategy}
+                              </span>
+                            ))}
+                          </div>
+                          {record.diffSummary.length > 0 && (
+                            <p className="text-xs text-muted-foreground line-clamp-2">
+                              {record.diffSummary[0]}
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            removeHistory(record.id)
+                          }}
+                          className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-all"
+                          title="删除"
+                        >
+                          <Trash2 className="w-3 h-3 text-red-500" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* 错误提示 */}
           {error && (
