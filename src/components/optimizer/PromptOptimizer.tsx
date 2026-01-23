@@ -115,6 +115,16 @@ export function PromptOptimizer() {
   }
 
   const applyHistoryRecord = (record: OptimizationHistory) => {
+    // 确认提示
+    const confirmed = window.confirm(
+      `确定要恢复此历史版本吗？\n\n` +
+      `策略: ${record.strategies.join(', ')}\n` +
+      `时间: ${formatTimestamp(record.timestamp)}\n\n` +
+      `当前的修改将被覆盖。`
+    )
+    
+    if (!confirmed) return
+
     // 应用历史记录中的优化结果
     setInstructionText(record.optimized.instructionText)
     
@@ -291,7 +301,11 @@ export function PromptOptimizer() {
                 </h4>
                 {history.length > 0 && (
                   <button
-                    onClick={clearHistory}
+                    onClick={() => {
+                      if (window.confirm(`确定要清空所有 ${history.length} 条历史记录吗？\n\n此操作不可恢复。`)) {
+                        clearHistory()
+                      }
+                    }}
                     className="text-xs text-muted-foreground hover:text-red-500 transition-colors"
                   >
                     清空
@@ -303,49 +317,89 @@ export function PromptOptimizer() {
                 <p className="text-xs text-muted-foreground text-center py-4">暂无历史记录</p>
               ) : (
                 <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {history.map((record) => (
-                    <div
-                      key={record.id}
-                      className="p-2 rounded-lg border border-border hover:border-purple-300 dark:hover:border-purple-700 transition-colors cursor-pointer group"
-                      onClick={() => applyHistoryRecord(record)}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5 mb-1">
-                            <Clock className="w-3 h-3 text-muted-foreground shrink-0" />
-                            <span className="text-xs text-muted-foreground">
-                              {formatTimestamp(record.timestamp)}
-                            </span>
-                          </div>
-                          <div className="flex flex-wrap gap-1 mb-1">
-                            {record.strategies.map((strategy, i) => (
-                              <span
-                                key={i}
-                                className="px-1.5 py-0.5 text-xs rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"
-                              >
-                                {strategy}
+                  {history.map((record) => {
+                    const originalLength = record.original.instructionText.length + record.original.userMessage.length
+                    const optimizedLength = record.optimized.instructionText.length + record.optimized.userMessage.length
+                    const lengthDiff = optimizedLength - originalLength
+                    const hasRisks = record.riskFlags.length > 0
+
+                    return (
+                      <div
+                        key={record.id}
+                        className={cn(
+                          'p-2 rounded-lg border transition-all cursor-pointer group',
+                          hasRisks
+                            ? 'border-yellow-300 dark:border-yellow-700 hover:border-yellow-400 dark:hover:border-yellow-600'
+                            : 'border-border hover:border-purple-300 dark:hover:border-purple-700'
+                        )}
+                        onClick={() => applyHistoryRecord(record)}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <Clock className="w-3 h-3 text-muted-foreground shrink-0" />
+                              <span className="text-xs text-muted-foreground">
+                                {formatTimestamp(record.timestamp)}
                               </span>
-                            ))}
+                              {hasRisks && (
+                                <span className="px-1.5 py-0.5 text-xs rounded bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 flex items-center gap-0.5">
+                                  <AlertTriangle className="w-2.5 h-2.5" />
+                                  风险
+                                </span>
+                              )}
+                              {lengthDiff !== 0 && (
+                                <span className={cn(
+                                  "px-1.5 py-0.5 text-xs rounded",
+                                  lengthDiff > 0
+                                    ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
+                                    : "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"
+                                )}>
+                                  {lengthDiff > 0 ? '+' : ''}{lengthDiff} 字
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex flex-wrap gap-1 mb-1">
+                              {record.strategies.map((strategy, i) => (
+                                <span
+                                  key={i}
+                                  className="px-1.5 py-0.5 text-xs rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"
+                                >
+                                  {strategy}
+                                </span>
+                              ))}
+                            </div>
+                            {record.diffSummary.length > 0 && (
+                              <div className="space-y-0.5">
+                                {record.diffSummary.slice(0, 2).map((diff, i) => (
+                                  <p key={i} className="text-xs text-muted-foreground line-clamp-1 flex items-start gap-1">
+                                    <span className="text-purple-500 shrink-0">•</span>
+                                    <span>{diff}</span>
+                                  </p>
+                                ))}
+                                {record.diffSummary.length > 2 && (
+                                  <p className="text-xs text-muted-foreground">
+                                    +{record.diffSummary.length - 2} 项改动...
+                                  </p>
+                                )}
+                              </div>
+                            )}
                           </div>
-                          {record.diffSummary.length > 0 && (
-                            <p className="text-xs text-muted-foreground line-clamp-2">
-                              {record.diffSummary[0]}
-                            </p>
-                          )}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              if (window.confirm('确定要删除这条历史记录吗？')) {
+                                removeHistory(record.id)
+                              }
+                            }}
+                            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-all"
+                            title="删除"
+                          >
+                            <Trash2 className="w-3 h-3 text-red-500" />
+                          </button>
                         </div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            removeHistory(record.id)
-                          }}
-                          className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-all"
-                          title="删除"
-                        >
-                          <Trash2 className="w-3 h-3 text-red-500" />
-                        </button>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </div>
