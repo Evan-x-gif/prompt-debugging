@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { ChevronDown, ChevronRight, AlertCircle, Eye, EyeOff } from 'lucide-react'
 import { useWorkspaceStore } from '@/stores/workspaceStore'
 import { cn } from '@/lib/utils'
+import { StructuredOutputPanel } from './StructuredOutputPanel'
+import { ToolsPanel } from './ToolsPanel'
 
 export function SettingsPanel() {
   const { config, params, setConfig, setParams } = useWorkspaceStore()
@@ -304,7 +306,163 @@ export function SettingsPanel() {
             />
           </div>
         )}
+
+        {/* N - 生成多个候选 (Chat Completions only) */}
+        {config.endpointMode === 'chat' && (
+          <div className="space-y-1.5">
+            <div className="flex justify-between">
+              <label className="text-sm font-medium">候选数量 (n)</label>
+              <span className="text-sm text-muted-foreground">{params.n}</span>
+            </div>
+            <input
+              type="range"
+              min="1"
+              max="5"
+              step="1"
+              value={params.n}
+              onChange={(e) => setParams({ n: parseInt(e.target.value) })}
+              className="w-full"
+            />
+            <p className="text-xs text-muted-foreground">生成多个候选会增加成本</p>
+          </div>
+        )}
+
+        {/* Logprobs (Chat Completions only) */}
+        {config.endpointMode === 'chat' && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium">输出 Token 概率</label>
+              <button
+                onClick={() => setParams({ logprobs: !params.logprobs })}
+                className={cn(
+                  'w-10 h-6 rounded-full transition-colors',
+                  params.logprobs ? 'bg-gradient-to-r from-emerald-500 to-teal-500' : 'bg-gray-300 dark:bg-gray-600'
+                )}
+              >
+                <span
+                  className={cn(
+                    'block w-4 h-4 rounded-full bg-white transition-transform',
+                    params.logprobs ? 'translate-x-5' : 'translate-x-1'
+                  )}
+                />
+              </button>
+            </div>
+            {params.logprobs && (
+              <div className="space-y-1.5">
+                <label className="text-xs text-muted-foreground">Top Logprobs 数量</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="20"
+                  value={params.topLogprobs ?? 5}
+                  onChange={(e) => setParams({ topLogprobs: parseInt(e.target.value) || null })}
+                  className={cn(
+                    'w-full px-3 py-1.5 rounded-md text-sm',
+                    'bg-background border border-input',
+                    'focus:outline-none focus:ring-2 focus:ring-ring'
+                  )}
+                />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Truncation (Responses API only) */}
+        {config.endpointMode === 'responses' && (
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">超上下文处理</label>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setParams({ truncation: 'auto' })}
+                className={cn(
+                  'flex-1 px-3 py-2 rounded-md text-sm border transition-colors',
+                  params.truncation === 'auto'
+                    ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white border-transparent'
+                    : 'border-input hover:bg-violet-50 dark:hover:bg-violet-900/20'
+                )}
+              >
+                自动截断
+              </button>
+              <button
+                onClick={() => setParams({ truncation: 'disabled' })}
+                className={cn(
+                  'flex-1 px-3 py-2 rounded-md text-sm border transition-colors',
+                  params.truncation === 'disabled'
+                    ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white border-transparent'
+                    : 'border-input hover:bg-violet-50 dark:hover:bg-violet-900/20'
+                )}
+              >
+                禁用（报错）
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Store (Responses API only) */}
+        {config.endpointMode === 'responses' && (
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium">存储响应</label>
+            <button
+              onClick={() => setParams({ store: !params.store })}
+              className={cn(
+                'w-10 h-6 rounded-full transition-colors',
+                params.store ? 'bg-gradient-to-r from-emerald-500 to-teal-500' : 'bg-gray-300 dark:bg-gray-600'
+              )}
+            >
+              <span
+                className={cn(
+                  'block w-4 h-4 rounded-full bg-white transition-transform',
+                  params.store ? 'translate-x-5' : 'translate-x-1'
+                )}
+              />
+            </button>
+          </div>
+        )}
+
+        {/* Previous Response ID (Responses API only) */}
+        {config.endpointMode === 'responses' && (
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">上一响应 ID（多轮串联）</label>
+            <input
+              type="text"
+              value={params.previousResponseId}
+              onChange={(e) => setParams({ previousResponseId: e.target.value })}
+              className={cn(
+                'w-full px-3 py-2 rounded-md text-sm',
+                'bg-background border border-input',
+                'focus:outline-none focus:ring-2 focus:ring-ring'
+              )}
+              placeholder="resp_xxx"
+            />
+          </div>
+        )}
+
+        {/* Reasoning Effort */}
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium">推理强度（仅推理模型）</label>
+          <select
+            value={params.reasoningEffort || ''}
+            onChange={(e) => setParams({ reasoningEffort: e.target.value as any || null })}
+            className={cn(
+              'w-full px-3 py-2 rounded-md text-sm',
+              'bg-background border border-input',
+              'focus:outline-none focus:ring-2 focus:ring-ring'
+            )}
+          >
+            <option value="">默认</option>
+            <option value="none">无</option>
+            <option value="low">低</option>
+            <option value="medium">中</option>
+            <option value="high">高</option>
+          </select>
+        </div>
       </Section>
+
+      {/* Structured Output Panel */}
+      <StructuredOutputPanel />
+
+      {/* Tools Panel */}
+      <ToolsPanel />
     </div>
   )
 }

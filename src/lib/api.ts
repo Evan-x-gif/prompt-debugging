@@ -195,10 +195,14 @@ export async function executeRequest(
     responseHeaders: {},
     metrics: {
       latencyMs: 0,
+      firstTokenMs: null,
       promptTokens: 0,
       completionTokens: 0,
       totalTokens: 0,
+      cachedTokens: 0,
+      reasoningTokens: 0,
       statusCode: 0,
+      finishReason: null,
     },
     outputText: '',
     error: null,
@@ -267,14 +271,20 @@ export async function executeRequest(
           record.metrics.promptTokens = json.usage.input_tokens || 0
           record.metrics.completionTokens = json.usage.output_tokens || 0
           record.metrics.totalTokens = json.usage.total_tokens || 0
+          record.metrics.cachedTokens = json.usage.prompt_tokens_details?.cached_tokens || 0
+          record.metrics.reasoningTokens = json.usage.completion_tokens_details?.reasoning_tokens || 0
         }
+        record.metrics.finishReason = json.status || json.finish_reason || null
       } else {
         record.outputText = json.choices?.[0]?.message?.content || ''
         if (json.usage) {
           record.metrics.promptTokens = json.usage.prompt_tokens || 0
           record.metrics.completionTokens = json.usage.completion_tokens || 0
           record.metrics.totalTokens = json.usage.total_tokens || 0
+          record.metrics.cachedTokens = json.usage.prompt_tokens_details?.cached_tokens || 0
+          record.metrics.reasoningTokens = json.usage.completion_tokens_details?.reasoning_tokens || 0
         }
+        record.metrics.finishReason = json.choices?.[0]?.finish_reason || null
       }
 
       callbacks?.onDone?.(record.outputText)

@@ -21,19 +21,38 @@ const defaultConfig: WorkspaceConfig = {
 }
 
 const defaultParams: ParamsDraft = {
+  // 常用参数
   temperature: 1,
   topP: 1,
   maxOutputTokens: 4096,
   stream: true,
   stop: [],
   seed: null,
+  
+  // Chat Completions 特有
   presencePenalty: 0,
   frequencyPenalty: 0,
+  n: 1,
+  logprobs: false,
+  topLogprobs: null,
+  logitBias: {},
+  
+  // Responses API 特有
+  truncation: 'auto',
+  store: false,
+  previousResponseId: '',
+  
+  // 推理模型参数
+  reasoningEffort: null,
+  
+  // 结构化输出
   structuredOutput: {
     enabled: false,
     schemaJson: '{}',
     strict: true,
   },
+  
+  // 工具调用
   tools: {
     enabled: false,
     toolJson: '[]',

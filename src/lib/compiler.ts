@@ -111,12 +111,27 @@ export function compileResponsesRequest(
   }
   if (params.stream) {
     request.stream = true
+    request.stream_options = { include_usage: true }
   }
   if (params.stop.length > 0) {
     request.stop = params.stop
   }
   if (params.seed !== null) {
     request.seed = params.seed
+  }
+  
+  // Responses API 特有参数
+  if (params.truncation !== 'auto') {
+    request.truncation = params.truncation
+  }
+  if (params.store) {
+    request.store = true
+  }
+  if (params.previousResponseId) {
+    request.previous_response_id = params.previousResponseId
+  }
+  if (params.reasoningEffort) {
+    request.reasoning = { effort: params.reasoningEffort }
   }
 
   // Structured output (V1.1 feature, basic support)
@@ -179,6 +194,7 @@ export function compileChatCompletionsRequest(
   }
   if (params.stream) {
     request.stream = true
+    request.stream_options = { include_usage: true }
   }
   if (params.stop.length > 0) {
     request.stop = params.stop
@@ -191,6 +207,23 @@ export function compileChatCompletionsRequest(
   }
   if (params.frequencyPenalty !== 0) {
     request.frequency_penalty = params.frequencyPenalty
+  }
+  
+  // Chat Completions 特有参数
+  if (params.n > 1) {
+    request.n = params.n
+  }
+  if (params.logprobs) {
+    request.logprobs = true
+    if (params.topLogprobs !== null) {
+      request.top_logprobs = params.topLogprobs
+    }
+  }
+  if (Object.keys(params.logitBias).length > 0) {
+    request.logit_bias = params.logitBias
+  }
+  if (params.reasoningEffort) {
+    request.reasoning_effort = params.reasoningEffort
   }
 
   // Structured output
