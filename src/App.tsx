@@ -4,6 +4,7 @@ import { SettingsPanel } from './components/params/SettingsPanel'
 import { PromptBuilder } from './components/prompt/PromptBuilder'
 import { PromptLint } from './components/prompt/PromptLint'
 import { OutputPanel } from './components/output/OutputPanel'
+import { ErrorBoundary } from './components/ErrorBoundary'
 
 function App() {
   const [activeTab, setActiveTab] = useState<'output' | 'compare' | 'raw' | 'sse'>('output')
@@ -35,25 +36,33 @@ function App() {
   }, [handleKeyDown])
 
   return (
-    <Layout>
-      <div className="flex h-full">
-        {/* Left Panel - Settings */}
-        <div className="w-72 shrink-0 border-r border-border/50 overflow-y-auto backdrop-blur-sm bg-white/40 dark:bg-black/20">
-          <SettingsPanel />
-        </div>
+    <ErrorBoundary>
+      <Layout>
+        <div className="flex h-full">
+          {/* Left Panel - Settings */}
+          <div className="w-72 shrink-0 border-r border-border/50 overflow-y-auto backdrop-blur-sm bg-white/40 dark:bg-black/20">
+            <ErrorBoundary>
+              <SettingsPanel />
+            </ErrorBoundary>
+          </div>
 
-        {/* Middle Panel - Prompt Builder */}
-        <div className="flex-1 min-w-[400px] border-r border-border/50 overflow-y-auto bg-white/30 dark:bg-black/10 backdrop-blur-sm">
-          <PromptBuilder />
-          <PromptLint />
-        </div>
+          {/* Middle Panel - Prompt Builder */}
+          <div className="flex-1 min-w-[400px] border-r border-border/50 overflow-y-auto bg-white/30 dark:bg-black/10 backdrop-blur-sm">
+            <ErrorBoundary>
+              <PromptBuilder />
+              <PromptLint />
+            </ErrorBoundary>
+          </div>
 
-        {/* Right Panel - Output */}
-        <div className="w-[45%] min-w-[400px] shrink-0 overflow-hidden bg-white/50 dark:bg-black/30 backdrop-blur-sm">
-          <OutputPanel activeTab={activeTab} onTabChange={setActiveTab} />
+          {/* Right Panel - Output */}
+          <div className="w-[45%] min-w-[400px] shrink-0 overflow-hidden bg-white/50 dark:bg-black/30 backdrop-blur-sm">
+            <ErrorBoundary>
+              <OutputPanel activeTab={activeTab} onTabChange={setActiveTab} />
+            </ErrorBoundary>
+          </div>
         </div>
-      </div>
-    </Layout>
+      </Layout>
+    </ErrorBoundary>
   )
 }
 
