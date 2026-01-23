@@ -202,7 +202,13 @@ export function ImageUploader({
               key={image.id}
               image={image}
               onUpdate={(updates) => onUpdateImage(image.id, updates)}
-              onRemove={() => onRemoveImage(image.id)}
+              onRemove={() => {
+                // 如果正在预览该图片，先关闭预览
+                if (previewImage?.id === image.id) {
+                  setPreviewImage(null)
+                }
+                onRemoveImage(image.id)
+              }}
               onPreview={() => setPreviewImage(image)}
             />
           ))}
