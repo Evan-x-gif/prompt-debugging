@@ -11,17 +11,8 @@ interface ImagePreviewModalProps {
 
 export function ImagePreviewModal({ imageUrl, filename, onClose }: ImagePreviewModalProps) {
   const [mounted, setMounted] = useState(false)
-  const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null)
 
   useEffect(() => {
-    // 创建 Portal 容器
-    let container = document.getElementById('image-preview-portal')
-    if (!container) {
-      container = document.createElement('div')
-      container.id = 'image-preview-portal'
-      document.body.appendChild(container)
-    }
-    setPortalContainer(container)
     setMounted(true)
 
     const handleEscape = (e: KeyboardEvent) => {
@@ -40,7 +31,10 @@ export function ImagePreviewModal({ imageUrl, filename, onClose }: ImagePreviewM
     }
   }, [onClose])
 
-  if (!mounted || !portalContainer) {
+  // 使用预先创建的 Portal 容器
+  const portalRoot = typeof document !== 'undefined' ? document.getElementById('portal-root') : null
+
+  if (!mounted || !portalRoot) {
     return null
   }
 
@@ -81,6 +75,6 @@ export function ImagePreviewModal({ imageUrl, filename, onClose }: ImagePreviewM
         </div>
       </div>
     </div>,
-    portalContainer
+    portalRoot
   )
 }
