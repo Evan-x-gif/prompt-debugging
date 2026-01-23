@@ -60,8 +60,8 @@ describe('compileMessages', () => {
   it('should compile user segments', () => {
     const draft = createMockDraft({
       userSegments: [
-        { id: '1', title: 'Main', enabled: true, text: 'Hello', joiner: '\n' },
-        { id: '2', title: 'Extra', enabled: true, text: 'World', joiner: '\n' },
+        { id: '1', title: 'Main', enabled: true, text: 'Hello', joiner: '\n', images: [] },
+        { id: '2', title: 'Extra', enabled: true, text: 'World', joiner: '\n', images: [] },
       ],
     })
     const messages = compileMessages(draft)
@@ -74,8 +74,8 @@ describe('compileMessages', () => {
   it('should skip disabled segments', () => {
     const draft = createMockDraft({
       userSegments: [
-        { id: '1', title: 'Main', enabled: true, text: 'Hello', joiner: '\n' },
-        { id: '2', title: 'Disabled', enabled: false, text: 'Skip me', joiner: '\n' },
+        { id: '1', title: 'Main', enabled: true, text: 'Hello', joiner: '\n', images: [] },
+        { id: '2', title: 'Disabled', enabled: false, text: 'Skip me', joiner: '\n', images: [] },
       ],
     })
     const messages = compileMessages(draft)
@@ -88,7 +88,7 @@ describe('compileMessages', () => {
     const draft = createMockDraft({
       instructionText: 'You are a teacher.',
       userSegments: [
-        { id: '1', title: 'Main', enabled: true, text: 'My name is {{name}}.', joiner: '\n' },
+        { id: '1', title: 'Main', enabled: true, text: 'My name is {{name}}.', joiner: '\n', images: [] },
       ],
       variables: { name: 'Alice' },
     })
@@ -101,7 +101,7 @@ describe('compileMessages', () => {
   it('should handle assistant presets', () => {
     const draft = createMockDraft({
       userSegments: [
-        { id: '1', title: 'Main', enabled: true, text: 'Question 1', joiner: '\n' },
+        { id: '1', title: 'Main', enabled: true, text: 'Question 1', joiner: '\n', images: [] },
       ],
       assistantPresets: [
         { id: 'a1', enabled: true, text: 'Answer 1' },
@@ -120,7 +120,7 @@ describe('compileResponsesRequest', () => {
     const draft = createMockDraft({
       instructionText: 'Be helpful.',
       userSegments: [
-        { id: '1', title: 'Main', enabled: true, text: 'Hello', joiner: '\n' },
+        { id: '1', title: 'Main', enabled: true, text: 'Hello', joiner: '\n', images: [] },
       ],
     })
     const params = createMockParams()
@@ -159,7 +159,7 @@ describe('compileChatCompletionsRequest', () => {
     const draft = createMockDraft({
       instructionText: 'Be helpful.',
       userSegments: [
-        { id: '1', title: 'Main', enabled: true, text: 'Hello', joiner: '\n' },
+        { id: '1', title: 'Main', enabled: true, text: 'Hello', joiner: '\n', images: [] },
       ],
     })
     const params = createMockParams()

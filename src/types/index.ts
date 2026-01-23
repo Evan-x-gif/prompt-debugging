@@ -11,6 +11,19 @@ export interface WorkspaceConfig {
   useProxy: boolean
 }
 
+// ========== Image Content ==========
+export interface ImageContent {
+  id: string
+  type: 'url' | 'base64'
+  url: string                    // 完整 URL 或 data:image/...
+  filename?: string              // 原始文件名
+  size?: number                  // 文件大小 (bytes)
+  detail: 'low' | 'high' | 'auto'
+  thumbnail?: string             // 缩略图 base64
+  status: 'loading' | 'ready' | 'error'
+  error?: string
+}
+
 // ========== Prompt Draft ==========
 export interface UserSegment {
   id: string
@@ -18,6 +31,7 @@ export interface UserSegment {
   enabled: boolean
   text: string
   joiner: string
+  images: ImageContent[]         // 图片列表
 }
 
 export interface AssistantPreset {
@@ -111,9 +125,13 @@ export interface RunRecord {
 }
 
 // ========== API Messages ==========
+export type MessageContentPart = 
+  | { type: 'text'; text: string }
+  | { type: 'image_url'; image_url: { url: string; detail?: 'low' | 'high' | 'auto' } }
+
 export interface Message {
   role: 'system' | 'developer' | 'user' | 'assistant'
-  content: string
+  content: string | MessageContentPart[]
 }
 
 // ========== Compiled Request ==========

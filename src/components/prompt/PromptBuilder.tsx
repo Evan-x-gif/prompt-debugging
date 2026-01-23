@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 import { PromptOptimizer } from '@/components/optimizer/PromptOptimizer'
 import { TestCasePanel } from '@/components/testing/TestCasePanel'
 import { JudgePanel } from '@/components/testing/JudgePanel'
+import { ImageUploader } from './ImageUploader'
 
 export function PromptBuilder() {
   const {
@@ -13,6 +14,9 @@ export function PromptBuilder() {
     addUserSegment,
     updateUserSegment,
     removeUserSegment,
+    addImageToSegment,
+    updateImageInSegment,
+    removeImageFromSegment,
     addAssistantPreset,
     updateAssistantPreset,
     removeAssistantPreset,
@@ -140,6 +144,16 @@ export function PromptBuilder() {
                 )}
                 placeholder="输入用户消息内容..."
               />
+
+              {/* Image Uploader */}
+              <div className="px-3 pb-2">
+                <ImageUploader
+                  images={segment.images || []}
+                  onAddImage={(image) => addImageToSegment(segment.id, image)}
+                  onUpdateImage={(imageId, updates) => updateImageInSegment(segment.id, imageId, updates)}
+                  onRemoveImage={(imageId) => removeImageFromSegment(segment.id, imageId)}
+                />
+              </div>
 
               {/* Joiner (for all but last segment) */}
               {index < draft.userSegments.length - 1 && (

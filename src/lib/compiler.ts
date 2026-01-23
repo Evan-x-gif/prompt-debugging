@@ -3,12 +3,22 @@ import type {
   ParamsDraft,
   WorkspaceConfig,
   Message,
+  MessageContentPart,
   ResponsesAPIRequest,
   ChatCompletionsRequest,
 } from '@/types'
 
 /**
- * Compile user segments into a single user message
+ * Check if any segment has images
+ */
+function hasImages(draft: PromptDraft): boolean {
+  return draft.userSegments.some(
+    (seg) => seg.enabled && seg.images && seg.images.length > 0 && seg.images.some(img => img.status === 'ready')
+  )
+}
+
+/**
+ * Compile user segments into a single user message (text only)
  */
 function compileUserContent(draft: PromptDraft): string {
   const enabledSegments = draft.userSegments.filter((seg) => seg.enabled)
@@ -30,6 +40,49 @@ function compileUserContent(draft: PromptDraft): string {
   })
 
   return result
+}
+
+/**
+ * Compile user segments into multimodal content (text + images)
+ */
+function compileUserContentMultimodal(draft: PromptDraft): MessageContentPart[] {
+  const enabledSegments = draft.userSegments.filter((seg) => seg.enabled)
+  const content: MessageContentPart[] = []
+
+  enabledSegments.forEach((seg, index) => {
+    // Replace variables in text
+    let text = seg.text
+    Object.entries(draft.variables).forEach(([key, value]) => {
+      text = text.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value)
+    })
+
+    // Add joiner between segments
+    if (index < enabledSegments.length - 1) {
+      text += seg.joiner
+    }
+
+    // Add text content if not empty
+    if (text.trim()) {
+      content.push({ type: 'text', text })
+    }
+
+    // Add images
+    if (seg.images && seg.images.length > 0) {
+      seg.images
+        .filter(img => img.status === 'ready')
+        .forEach(img => {
+          content.push({
+            type: 'image_url',
+            image_url: {
+              url: img.url,
+              detail: img.detail,
+            },
+          })
+        })
+    }
+  })
+
+  return content
 }
 
 /**
@@ -64,12 +117,24 @@ export function compileMessages(draft: PromptDraft): Message[] {
   })
 
   // Add compiled user message (current turn)
-  const userContent = compileUserContent(draft)
-  if (userContent.trim()) {
-    messages.push({
-      role: 'user',
-      content: userContent,
-    })
+  if (hasImages(draft)) {
+    // Multimodal content with images
+    const multimodalContent = compileUserContentMultimodal(draft)
+    if (multimodalContent.length > 0) {
+      messages.push({
+        role: 'user',
+        content: multimodalContent,
+      })
+    }
+  } else {
+    // Text-only content
+    const userContent = compileUserContent(draft)
+    if (userContent.trim()) {
+      messages.push({
+        role: 'user',
+        content: userContent,
+      })
+    }
   }
 
   return messages

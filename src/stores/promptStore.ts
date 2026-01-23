@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { PromptDraft, UserSegment, AssistantPreset } from '@/types'
+import type { PromptDraft, UserSegment, AssistantPreset, ImageContent } from '@/types'
 import { generateId } from '@/lib/utils'
 
 interface PromptState {
@@ -11,6 +11,9 @@ interface PromptState {
   updateUserSegment: (id: string, updates: Partial<UserSegment>) => void
   removeUserSegment: (id: string) => void
   reorderUserSegments: (fromIndex: number, toIndex: number) => void
+  addImageToSegment: (segmentId: string, image: ImageContent) => void
+  updateImageInSegment: (segmentId: string, imageId: string, updates: Partial<ImageContent>) => void
+  removeImageFromSegment: (segmentId: string, imageId: string) => void
   addAssistantPreset: () => void
   updateAssistantPreset: (id: string, updates: Partial<AssistantPreset>) => void
   removeAssistantPreset: (id: string) => void
@@ -29,6 +32,7 @@ const defaultDraft: PromptDraft = {
       enabled: true,
       text: '',
       joiner: '\n\n',
+      images: [],
     },
   ],
   assistantPresets: [],
@@ -62,6 +66,7 @@ export const usePromptStore = create<PromptState>()(
                 enabled: true,
                 text: '',
                 joiner: '\n\n',
+                images: [],
               },
             ],
           },
@@ -94,6 +99,47 @@ export const usePromptStore = create<PromptState>()(
             draft: { ...state.draft, userSegments: segments },
           }
         }),
+
+      addImageToSegment: (segmentId, image) =>
+        set((state) => ({
+          draft: {
+            ...state.draft,
+            userSegments: state.draft.userSegments.map((seg) =>
+              seg.id === segmentId
+                ? { ...seg, images: [...seg.images, image] }
+                : seg
+            ),
+          },
+        })),
+
+      updateImageInSegment: (segmentId, imageId, updates) =>
+        set((state) => ({
+          draft: {
+            ...state.draft,
+            userSegments: state.draft.userSegments.map((seg) =>
+              seg.id === segmentId
+                ? {
+                    ...seg,
+                    images: seg.images.map((img) =>
+                      img.id === imageId ? { ...img, ...updates } : img
+                    ),
+                  }
+                : seg
+            ),
+          },
+        })),
+
+      removeImageFromSegment: (segmentId, imageId) =>
+        set((state) => ({
+          draft: {
+            ...state.draft,
+            userSegments: state.draft.userSegments.map((seg) =>
+              seg.id === segmentId
+                ? { ...seg, images: seg.images.filter((img) => img.id !== imageId) }
+                : seg
+            ),
+          },
+        })),
 
       addAssistantPreset: () =>
         set((state) => ({

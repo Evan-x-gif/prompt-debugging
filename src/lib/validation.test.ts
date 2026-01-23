@@ -83,7 +83,7 @@ describe('lintPrompt', () => {
 describe('canRun', () => {
   it('should return false when config is invalid', () => {
     const draft = createMockDraft({
-      userSegments: [{ id: '1', title: 'Main', enabled: true, text: 'Hello', joiner: '\n' }],
+      userSegments: [{ id: '1', title: 'Main', enabled: true, text: 'Hello', joiner: '\n', images: [] }],
     })
     const config = createMockConfig({ baseURL: '' })
     
@@ -104,7 +104,7 @@ describe('canRun', () => {
 
   it('should return true for valid setup', () => {
     const draft = createMockDraft({
-      userSegments: [{ id: '1', title: 'Main', enabled: true, text: 'Hello', joiner: '\n' }],
+      userSegments: [{ id: '1', title: 'Main', enabled: true, text: 'Hello', joiner: '\n', images: [] }],
     })
     const config = createMockConfig()
     
