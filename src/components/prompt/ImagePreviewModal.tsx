@@ -1,5 +1,5 @@
 import { X } from 'lucide-react'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { cn } from '@/lib/utils'
 
@@ -10,7 +10,20 @@ interface ImagePreviewModalProps {
 }
 
 export function ImagePreviewModal({ imageUrl, filename, onClose }: ImagePreviewModalProps) {
+  const [mounted, setMounted] = useState(false)
+  const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null)
+
   useEffect(() => {
+    // 创建 Portal 容器
+    let container = document.getElementById('image-preview-portal')
+    if (!container) {
+      container = document.createElement('div')
+      container.id = 'image-preview-portal'
+      document.body.appendChild(container)
+    }
+    setPortalContainer(container)
+    setMounted(true)
+
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose()
@@ -26,6 +39,10 @@ export function ImagePreviewModal({ imageUrl, filename, onClose }: ImagePreviewM
       document.removeEventListener('keydown', handleEscape)
     }
   }, [onClose])
+
+  if (!mounted || !portalContainer) {
+    return null
+  }
 
   return createPortal(
     <div
@@ -64,6 +81,6 @@ export function ImagePreviewModal({ imageUrl, filename, onClose }: ImagePreviewM
         </div>
       </div>
     </div>,
-    document.body
+    portalContainer
   )
 }
