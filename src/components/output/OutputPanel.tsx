@@ -108,15 +108,58 @@ function OutputTab({ isRunning, output, record, error }: OutputTabProps) {
     <div className="p-4 space-y-3">
       {/* Metrics */}
       {record && (
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          <div className="flex items-center gap-1">
-            <Clock className="w-4 h-4" />
-            <span>{record.metrics.latencyMs}ms</span>
+        <div className="p-3 rounded-lg bg-muted/30 border border-border space-y-2">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+            {/* 延迟 */}
+            <div className="flex items-center gap-1 text-muted-foreground">
+              <Clock className="w-4 h-4" />
+              <span>{record.metrics.latencyMs}ms</span>
+            </div>
+            {/* 首 token 延迟 */}
+            {record.metrics.firstTokenMs && (
+              <div className="flex items-center gap-1 text-muted-foreground">
+                <span className="text-xs">首token:</span>
+                <span>{record.metrics.firstTokenMs}ms</span>
+              </div>
+            )}
+            {/* Token 统计 */}
+            {record.metrics.totalTokens > 0 && (
+              <div className="flex items-center gap-1 text-muted-foreground">
+                <Coins className="w-4 h-4" />
+                <span>{record.metrics.totalTokens} tokens</span>
+              </div>
+            )}
+            {/* 结束原因 */}
+            {record.metrics.finishReason && (
+              <div className="flex items-center gap-1">
+                <span className={cn(
+                  'px-1.5 py-0.5 text-xs rounded',
+                  record.metrics.finishReason === 'stop' 
+                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                    : record.metrics.finishReason === 'length'
+                    ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                    : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'
+                )}>
+                  {record.metrics.finishReason}
+                </span>
+              </div>
+            )}
           </div>
-          {record.metrics.totalTokens > 0 && (
-            <div className="flex items-center gap-1">
-              <Coins className="w-4 h-4" />
-              <span>{record.metrics.totalTokens} tokens</span>
+          {/* 详细 token 分解 */}
+          {(record.metrics.promptTokens > 0 || record.metrics.completionTokens > 0) && (
+            <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+              <span>输入: {record.metrics.promptTokens}</span>
+              <span>输出: {record.metrics.completionTokens}</span>
+              {record.metrics.cachedTokens > 0 && (
+                <span className="text-green-600 dark:text-green-400">
+                  缓存命中: {record.metrics.cachedTokens}
+                </span>
+              )}
+              {record.metrics.reasoningTokens > 0 && (
+                <span className="text-purple-600 dark:text-purple-400">
+                  推理: {record.metrics.reasoningTokens}
+                </span>
+              )}
             </div>
           )}
         </div>

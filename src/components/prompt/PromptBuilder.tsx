@@ -2,6 +2,8 @@ import { Plus, Trash2, GripVertical, ToggleLeft, ToggleRight } from 'lucide-reac
 import { usePromptStore } from '@/stores/promptStore'
 import { cn } from '@/lib/utils'
 import { PromptOptimizer } from '@/components/optimizer/PromptOptimizer'
+import { TestCasePanel } from '@/components/testing/TestCasePanel'
+import { JudgePanel } from '@/components/testing/JudgePanel'
 
 export function PromptBuilder() {
   const {
@@ -263,6 +265,12 @@ export function PromptBuilder() {
 
       {/* Prompt Optimizer */}
       <PromptOptimizer />
+
+      {/* Test Cases */}
+      <TestCasePanel />
+
+      {/* LLM Judge */}
+      <JudgePanel />
     </div>
   )
 }
