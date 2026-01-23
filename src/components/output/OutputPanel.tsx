@@ -98,8 +98,18 @@ function OutputTab({ isRunning, output, record, error }: OutputTabProps) {
 
   if (!output && !isRunning) {
     return (
-      <div className="h-full flex items-center justify-center text-muted-foreground">
-        <p>运行提示词查看输出</p>
+      <div className="h-full flex flex-col items-center justify-center text-muted-foreground p-8">
+        <div className="w-16 h-16 mb-4 rounded-full bg-gradient-to-br from-violet-100 to-indigo-100 dark:from-violet-900/30 dark:to-indigo-900/30 flex items-center justify-center">
+          <svg className="w-8 h-8 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+        </div>
+        <p className="text-lg font-medium text-foreground mb-1">准备就绪</p>
+        <p className="text-sm text-center max-w-xs">
+          在左侧配置参数，中间编写 Prompt，然后点击
+          <kbd className="mx-1 px-1.5 py-0.5 text-xs rounded bg-muted border border-border font-mono">⌘+Enter</kbd>
+          运行
+        </p>
       </div>
     )
   }
