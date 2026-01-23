@@ -38,22 +38,19 @@ function App() {
     <Layout>
       <div className="flex h-full">
         {/* Left Panel - Settings */}
-        <div className="w-80 border-r border-border/50 overflow-y-auto backdrop-blur-sm bg-white/40 dark:bg-black/20">
+        <div className="w-72 shrink-0 border-r border-border/50 overflow-y-auto backdrop-blur-sm bg-white/40 dark:bg-black/20">
           <SettingsPanel />
         </div>
 
-        {/* Right Panel - Prompt + Output */}
-        <div className="flex-1 flex flex-col min-w-0 bg-white/30 dark:bg-black/10 backdrop-blur-sm">
-          {/* Prompt Builder */}
-          <div className="flex-1 overflow-y-auto border-b border-border/50">
-            <PromptBuilder />
-            <PromptLint />
-          </div>
+        {/* Middle Panel - Prompt Builder */}
+        <div className="flex-1 min-w-[400px] border-r border-border/50 overflow-y-auto bg-white/30 dark:bg-black/10 backdrop-blur-sm">
+          <PromptBuilder />
+          <PromptLint />
+        </div>
 
-          {/* Output Panel */}
-          <div className="h-[40%] min-h-[200px] bg-white/50 dark:bg-black/30 backdrop-blur-sm">
-            <OutputPanel activeTab={activeTab} onTabChange={setActiveTab} />
-          </div>
+        {/* Right Panel - Output */}
+        <div className="w-[45%] min-w-[400px] shrink-0 overflow-hidden bg-white/50 dark:bg-black/30 backdrop-blur-sm">
+          <OutputPanel activeTab={activeTab} onTabChange={setActiveTab} />
         </div>
       </div>
     </Layout>
