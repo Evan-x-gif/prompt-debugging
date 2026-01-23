@@ -14,6 +14,17 @@ import {
   type OptimizationHistory,
 } from '@/lib/optimizer'
 
+// 预设的优化器模型列表
+const OPTIMIZER_MODELS = [
+  { id: '', label: '使用当前模型' },
+  { id: 'gpt-4o', label: 'GPT-4o' },
+  { id: 'gpt-4o-mini', label: 'GPT-4o Mini (便宜)' },
+  { id: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
+  { id: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet' },
+  { id: 'deepseek-chat', label: 'DeepSeek Chat' },
+  { id: 'custom', label: '自定义模型...' },
+]
+
 export function PromptOptimizer() {
   const { draft, setInstructionText, updateUserSegment } = usePromptStore()
   const { config, params } = useWorkspaceStore()
@@ -26,6 +37,19 @@ export function PromptOptimizer() {
   const [result, setResult] = useState<OptimizationResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [originalDraft, setOriginalDraft] = useState<typeof draft | null>(null)
+  
+  // 优化器模型选择
+  const [optimizerModel, setOptimizerModel] = useState('')
+  const [customModel, setCustomModel] = useState('')
+  const [showModelSelect, setShowModelSelect] = useState(false)
+  
+  // 获取实际使用的模型 ID
+  const getEffectiveModelId = () => {
+    if (optimizerModel === 'custom') {
+      return customModel || config.modelId
+    }
+    return optimizerModel || config.modelId
+  }
 
   // 本地快速分析
   const quickAnalysis = useMemo(() => {
@@ -39,7 +63,9 @@ export function PromptOptimizer() {
   }
 
   const handleOptimize = async () => {
-    if (!config.modelId || !config.apiKey) {
+    const effectiveModelId = getEffectiveModelId()
+    
+    if (!effectiveModelId || !config.apiKey) {
       setError('请先配置模型和 API Key')
       return
     }
@@ -49,7 +75,12 @@ export function PromptOptimizer() {
     setOriginalDraft({ ...draft })
 
     try {
-      const optimizationResult = await optimizePrompt(draft, strategies, config, params)
+      // 使用选择的模型进行优化
+      const optimizerConfig = {
+        ...config,
+        modelId: effectiveModelId,
+      }
+      const optimizationResult = await optimizePrompt(draft, strategies, optimizerConfig, params)
       setResult(optimizationResult)
 
       // 保存到历史记录
@@ -180,6 +211,57 @@ export function PromptOptimizer() {
 
       {expanded && (
         <div className="p-3 space-y-4">
+          {/* 模型选择 */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-medium">优化模型</h4>
+              <button
+                onClick={() => setShowModelSelect(!showModelSelect)}
+                className="text-xs text-purple-600 hover:text-purple-700 dark:text-purple-400"
+              >
+                {showModelSelect ? '收起' : '更换模型'}
+              </button>
+            </div>
+            
+            {showModelSelect ? (
+              <div className="space-y-2">
+                <select
+                  value={optimizerModel}
+                  onChange={(e) => setOptimizerModel(e.target.value)}
+                  className={cn(
+                    'w-full px-3 py-2 rounded-md text-sm',
+                    'bg-background border border-input',
+                    'focus:outline-none focus:ring-2 focus:ring-purple-500'
+                  )}
+                >
+                  {OPTIMIZER_MODELS.map((model) => (
+                    <option key={model.id} value={model.id}>
+                      {model.label}
+                    </option>
+                  ))}
+                </select>
+                
+                {optimizerModel === 'custom' && (
+                  <input
+                    type="text"
+                    value={customModel}
+                    onChange={(e) => setCustomModel(e.target.value)}
+                    placeholder="输入模型 ID，如 gpt-4o-2024-08-06"
+                    className={cn(
+                      'w-full px-3 py-2 rounded-md text-sm',
+                      'bg-background border border-input',
+                      'focus:outline-none focus:ring-2 focus:ring-purple-500'
+                    )}
+                  />
+                )}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                当前: <span className="font-medium text-foreground">{getEffectiveModelId()}</span>
+              </p>
+            )}
+          </div>
+
           {/* 快速建议 */}
           {quickAnalysis.suggestions.length > 0 && (
             <div className="space-y-2">
