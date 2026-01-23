@@ -1,6 +1,7 @@
 import { Plus, Trash2, GripVertical, ToggleLeft, ToggleRight } from 'lucide-react'
 import { usePromptStore } from '@/stores/promptStore'
 import { cn } from '@/lib/utils'
+import { PromptOptimizer } from '@/components/optimizer/PromptOptimizer'
 
 export function PromptBuilder() {
   const {
@@ -259,6 +260,9 @@ export function PromptBuilder() {
           </div>
         )}
       </div>
+
+      {/* Prompt Optimizer */}
+      <PromptOptimizer />
     </div>
   )
 }
