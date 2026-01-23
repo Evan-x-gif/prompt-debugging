@@ -6,7 +6,7 @@ import { PromptLint } from './components/prompt/PromptLint'
 import { OutputPanel } from './components/output/OutputPanel'
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'output' | 'compare' | 'raw'>('output')
+  const [activeTab, setActiveTab] = useState<'output' | 'compare' | 'raw' | 'sse'>('output')
 
   // 键盘快捷键支持
   const handleKeyDown = useCallback((e: KeyboardEvent) => {

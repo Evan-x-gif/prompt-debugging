@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { RunRecord } from '@/types'
+import type { SSEEvent } from '@/components/output/SSEViewer'
 
 interface RunState {
   isRunning: boolean
@@ -7,12 +8,15 @@ interface RunState {
   currentRecord: RunRecord | null
   abortController: AbortController | null
   error: string | null
+  sseEvents: SSEEvent[]
   setRunning: (running: boolean) => void
   setCurrentOutput: (output: string) => void
   appendOutput: (chunk: string) => void
   setCurrentRecord: (record: RunRecord | null) => void
   setAbortController: (controller: AbortController | null) => void
   setError: (error: string | null) => void
+  addSSEEvent: (event: SSEEvent) => void
+  clearSSEEvents: () => void
   reset: () => void
   abort: () => void
 }
@@ -23,6 +27,7 @@ export const useRunStore = create<RunState>((set, get) => ({
   currentRecord: null,
   abortController: null,
   error: null,
+  sseEvents: [],
 
   setRunning: (running) => set({ isRunning: running }),
 
@@ -37,6 +42,10 @@ export const useRunStore = create<RunState>((set, get) => ({
 
   setError: (error) => set({ error }),
 
+  addSSEEvent: (event) => set((state) => ({ sseEvents: [...state.sseEvents, event] })),
+
+  clearSSEEvents: () => set({ sseEvents: [] }),
+
   reset: () =>
     set({
       isRunning: false,
@@ -44,6 +53,7 @@ export const useRunStore = create<RunState>((set, get) => ({
       currentRecord: null,
       abortController: null,
       error: null,
+      sseEvents: [],
     }),
 
   abort: () => {

@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Plus, Trash2, Play, ChevronDown, ChevronRight, FlaskConical, Edit2 } from 'lucide-react'
+import { Plus, Trash2, Play, ChevronDown, ChevronRight, FlaskConical, Edit2, Grid3X3 } from 'lucide-react'
+import { MatrixRunner } from './MatrixRunner'
 import { useTestStore } from '@/stores/testStore'
 import { usePromptStore } from '@/stores/promptStore'
 import { useWorkspaceStore } from '@/stores/workspaceStore'
@@ -16,6 +17,7 @@ export function TestCasePanel() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [newCase, setNewCase] = useState({ name: '', description: '', variables: '' })
   const [runningId, setRunningId] = useState<string | null>(null)
+  const [showMatrix, setShowMatrix] = useState(false)
 
   const handleAddTestCase = () => {
     if (!newCase.name.trim()) return
@@ -169,19 +171,32 @@ export function TestCasePanel() {
                 <span className="text-xs text-muted-foreground">
                   {testCases.length} 个测试用例
                 </span>
-                <button
-                  onClick={handleRunAll}
-                  disabled={runningId !== null}
-                  className={cn(
-                    'flex items-center gap-1 px-2 py-1 rounded text-xs',
-                    'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300',
-                    'hover:bg-emerald-200 dark:hover:bg-emerald-800/40 transition-colors',
-                    'disabled:opacity-50'
-                  )}
-                >
-                  <Play className="w-3 h-3" />
-                  运行全部
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowMatrix(true)}
+                    className={cn(
+                      'flex items-center gap-1 px-2 py-1 rounded text-xs',
+                      'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300',
+                      'hover:bg-indigo-200 dark:hover:bg-indigo-800/40 transition-colors'
+                    )}
+                  >
+                    <Grid3X3 className="w-3 h-3" />
+                    矩阵跑分
+                  </button>
+                  <button
+                    onClick={handleRunAll}
+                    disabled={runningId !== null}
+                    className={cn(
+                      'flex items-center gap-1 px-2 py-1 rounded text-xs',
+                      'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300',
+                      'hover:bg-emerald-200 dark:hover:bg-emerald-800/40 transition-colors',
+                      'disabled:opacity-50'
+                    )}
+                  >
+                    <Play className="w-3 h-3" />
+                    运行全部
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -305,6 +320,9 @@ export function TestCasePanel() {
           )}
         </div>
       )}
+
+      {/* 矩阵跑分弹窗 */}
+      {showMatrix && <MatrixRunner onClose={() => setShowMatrix(false)} />}
     </div>
   )
 }

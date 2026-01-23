@@ -1,15 +1,17 @@
 import { useState } from 'react'
-import { Copy, Check, AlertCircle, Clock, Coins } from 'lucide-react'
+import { Copy, Check, AlertCircle, Clock, Coins, DollarSign } from 'lucide-react'
 import { useRunStore } from '@/stores/runStore'
 import { useHistoryStore } from '@/stores/historyStore'
 import { useWorkspaceStore } from '@/stores/workspaceStore'
 import { usePromptStore } from '@/stores/promptStore'
 import { getCurlCommand } from '@/lib/api'
 import { cn, copyToClipboard, formatJSON } from '@/lib/utils'
+import { calculateCost, formatCost } from '@/lib/pricing'
+import { SSEViewer } from './SSEViewer'
 
 interface OutputPanelProps {
-  activeTab: 'output' | 'compare' | 'raw'
-  onTabChange: (tab: 'output' | 'compare' | 'raw') => void
+  activeTab: 'output' | 'compare' | 'raw' | 'sse'
+  onTabChange: (tab: 'output' | 'compare' | 'raw' | 'sse') => void
 }
 
 export function OutputPanel({ activeTab, onTabChange }: OutputPanelProps) {
@@ -22,7 +24,7 @@ export function OutputPanel({ activeTab, onTabChange }: OutputPanelProps) {
     <div className="h-full flex flex-col">
       {/* Tabs */}
       <div className="flex items-center border-b border-border px-4 shrink-0">
-        {(['output', 'compare', 'raw'] as const).map((tab) => (
+        {(['output', 'compare', 'raw', 'sse'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => onTabChange(tab)}
@@ -36,6 +38,7 @@ export function OutputPanel({ activeTab, onTabChange }: OutputPanelProps) {
             {tab === 'output' && '输出'}
             {tab === 'compare' && '对比'}
             {tab === 'raw' && '原始数据'}
+            {tab === 'sse' && '事件流'}
           </button>
         ))}
       </div>
@@ -61,9 +64,17 @@ export function OutputPanel({ activeTab, onTabChange }: OutputPanelProps) {
             draft={draft}
           />
         )}
+        {activeTab === 'sse' && (
+          <SSETab />
+        )}
       </div>
     </div>
   )
+}
+
+function SSETab() {
+  const { sseEvents, clearSSEEvents } = useRunStore()
+  return <SSEViewer events={sseEvents} onClear={clearSSEEvents} />
 }
 
 interface OutputTabProps {
@@ -155,7 +166,7 @@ function OutputTab({ isRunning, output, record, error }: OutputTabProps) {
               </div>
             )}
           </div>
-          {/* 详细 token 分解 */}
+          {/* 详细 token 分解 + 成本 */}
           {(record.metrics.promptTokens > 0 || record.metrics.completionTokens > 0) && (
             <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
               <span>输入: {record.metrics.promptTokens}</span>
@@ -170,6 +181,21 @@ function OutputTab({ isRunning, output, record, error }: OutputTabProps) {
                   推理: {record.metrics.reasoningTokens}
                 </span>
               )}
+              {/* 成本估算 */}
+              {(() => {
+                const cost = calculateCost(
+                  record.modelId,
+                  record.metrics.promptTokens,
+                  record.metrics.completionTokens,
+                  record.metrics.cachedTokens
+                )
+                return (
+                  <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400" title={`输入: ${formatCost(cost.inputCost)} | 输出: ${formatCost(cost.outputCost)}${cost.cachedCost > 0 ? ` | 缓存: ${formatCost(cost.cachedCost)}` : ''}`}>
+                    <DollarSign className="w-3 h-3" />
+                    {formatCost(cost.totalCost)}
+                  </span>
+                )
+              })()}
             </div>
           )}
         </div>
