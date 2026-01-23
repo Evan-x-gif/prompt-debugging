@@ -136,13 +136,43 @@ export function PromptBuilder() {
                 onChange={(e) =>
                   updateUserSegment(segment.id, { text: e.target.value })
                 }
+                onPaste={(e) => {
+                  // 处理粘贴的图片
+                  const items = Array.from(e.clipboardData.items)
+                  items.forEach(item => {
+                    if (item.type.startsWith('image/')) {
+                      e.preventDefault() // 阻止默认粘贴行为
+                      const file = item.getAsFile()
+                      if (file) {
+                        // 调用 ImageUploader 的处理逻辑
+                        const reader = new FileReader()
+                        reader.onload = async (event) => {
+                          const base64 = event.target?.result as string
+                          const imageId = `img-${Date.now()}`
+                          
+                          // 添加图片到当前段落
+                          addImageToSegment(segment.id, {
+                            id: imageId,
+                            type: 'base64',
+                            url: base64,
+                            filename: file.name || 'pasted-image.png',
+                            size: file.size,
+                            detail: 'auto',
+                            status: 'ready',
+                          })
+                        }
+                        reader.readAsDataURL(file)
+                      }
+                    }
+                  })
+                }}
                 className={cn(
                   'w-full h-24 px-3 py-2 text-sm font-mono',
                   'bg-background border-none',
                   'focus:outline-none',
                   'resize-y'
                 )}
-                placeholder="输入用户消息内容..."
+                placeholder="输入用户消息内容... (支持粘贴图片)"
               />
 
               {/* Image Uploader */}
