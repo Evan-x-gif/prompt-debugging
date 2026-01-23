@@ -1,5 +1,6 @@
 import { X } from 'lucide-react'
 import { useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { cn } from '@/lib/utils'
 
 interface ImagePreviewModalProps {
@@ -16,13 +17,19 @@ export function ImagePreviewModal({ imageUrl, filename, onClose }: ImagePreviewM
       }
     }
 
+    // 阻止页面滚动
+    document.body.style.overflow = 'hidden'
     document.addEventListener('keydown', handleEscape)
-    return () => document.removeEventListener('keydown', handleEscape)
+    
+    return () => {
+      document.body.style.overflow = ''
+      document.removeEventListener('keydown', handleEscape)
+    }
   }, [onClose])
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
@@ -56,6 +63,7 @@ export function ImagePreviewModal({ imageUrl, filename, onClose }: ImagePreviewM
           />
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
