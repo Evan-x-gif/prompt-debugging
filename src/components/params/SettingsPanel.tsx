@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronRight, AlertCircle, Eye, EyeOff } from 'lucide-react'
+import { ChevronDown, ChevronRight, AlertCircle, Eye, EyeOff, ExternalLink } from 'lucide-react'
 import { useWorkspaceStore } from '@/stores/workspaceStore'
 import { cn } from '@/lib/utils'
 import { StructuredOutputPanel } from './StructuredOutputPanel'
@@ -83,7 +83,18 @@ export function SettingsPanel() {
 
         {/* Model ID */}
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">模型</label>
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium">模型</label>
+            <a
+              href="https://s.qiniu.com/JB3ieq"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-xs text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 transition-colors"
+            >
+              <span>获取模型列表</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
+          </div>
           <input
             type="text"
             value={config.modelId}
