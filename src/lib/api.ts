@@ -5,6 +5,7 @@ import type {
   RunRecord,
   RunMetrics,
 } from '@/types'
+import type { SSEEvent } from '@/components/output/SSEViewer'
 import {
   compileResponsesRequest,
   compileChatCompletionsRequest,
@@ -14,8 +15,10 @@ import { generateId } from './utils'
 
 interface StreamCallbacks {
   onChunk: (chunk: string) => void
+  onReasoningChunk?: (chunk: string) => void
   onDone: (fullText: string) => void
   onError: (error: Error) => void
+  onSSEEvent?: (event: SSEEvent) => void
 }
 
 /**
@@ -29,8 +32,11 @@ function buildUrl(config: WorkspaceConfig): string {
       : '/v1/chat/completions'
 
   if (config.useProxy) {
-    return `/api/proxy?target=${encodeURIComponent(base + endpoint)}`
+    const url = `/api/proxy?target=${encodeURIComponent(base + endpoint)}`
+    console.log('[API] Using proxy:', url)
+    return url
   }
+  console.log('[API] Direct request:', base + endpoint)
   return base + endpoint
 }
 
@@ -58,6 +64,38 @@ function buildHeaders(config: WorkspaceConfig): Record<string, string> {
 }
 
 /**
+ * Helper function to record SSE events
+ */
+function recordSSEEvent(
+  line: string,
+  data: string,
+  callback?: (event: SSEEvent) => void
+): void {
+  if (!callback) {
+    console.warn('[API] onSSEEvent callback is undefined, skipping event recording')
+    return
+  }
+
+  const sseEvent: SSEEvent = {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    timestamp: Date.now(),
+    type: data === '[DONE]' ? 'done' : 'data',
+    raw: line,
+  }
+
+  if (data !== '[DONE]') {
+    try {
+      sseEvent.parsed = JSON.parse(data)
+    } catch {
+      // 保持原始字符串
+    }
+  }
+
+  console.log('[API] Recording SSE event:', sseEvent.type, sseEvent.id)
+  callback(sseEvent)
+}
+
+/**
  * Parse SSE stream for Responses API
  */
 async function parseResponsesStream(
@@ -81,6 +119,10 @@ async function parseResponsesStream(
       for (const line of lines) {
         if (line.startsWith('data: ')) {
           const data = line.slice(6).trim()
+          
+          // 记录 SSE 事件
+          recordSSEEvent(line, data, callbacks.onSSEEvent)
+          
           if (data === '[DONE]') continue
 
           try {
@@ -144,15 +186,28 @@ async function parseChatCompletionsStream(
       for (const line of lines) {
         if (line.startsWith('data: ')) {
           const data = line.slice(6).trim()
+          
+          // 记录 SSE 事件
+          recordSSEEvent(line, data, callbacks.onSSEEvent)
+          
           if (data === '[DONE]') continue
 
           try {
             const event = JSON.parse(data)
+            
+            // 处理推理内容 (reasoning_content)
+            const reasoningDelta = event.choices?.[0]?.delta?.reasoning_content
+            if (reasoningDelta && callbacks.onReasoningChunk) {
+              callbacks.onReasoningChunk(reasoningDelta)
+            }
+            
+            // 处理实际输出内容 (content)
             const delta = event.choices?.[0]?.delta?.content
             if (delta) {
               fullText += delta
               callbacks.onChunk(delta)
             }
+            
             if (event.usage) {
               usage = event.usage
             }
@@ -220,16 +275,18 @@ export async function executeRequest(
   }
 
   try {
-    const fetchOptions: RequestInit = {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(body),
-      signal: abortSignal,
+    // Add API key to headers for proxy request
+    const finalHeaders = { ...headers }
+    if (config.useProxy && config.apiKey) {
+      finalHeaders['X-API-Key'] = config.apiKey
+      console.log('[API] Added X-API-Key header for proxy')
     }
 
-    // Add API key to proxy request
-    if (config.useProxy && config.apiKey) {
-      (fetchOptions.headers as Record<string, string>)['X-API-Key'] = config.apiKey
+    const fetchOptions: RequestInit = {
+      method: 'POST',
+      headers: finalHeaders,
+      body: JSON.stringify(body),
+      signal: abortSignal,
     }
 
     const response = await fetch(url, fetchOptions)
@@ -257,8 +314,10 @@ export async function executeRequest(
 
       const { fullText, usage } = await parseStream(reader, {
         onChunk: callbacks?.onChunk || (() => {}),
+        onReasoningChunk: callbacks?.onReasoningChunk,
         onDone: callbacks?.onDone || (() => {}),
         onError: callbacks?.onError || (() => {}),
+        onSSEEvent: callbacks?.onSSEEvent,
       })
 
       record.outputText = fullText

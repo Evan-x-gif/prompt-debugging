@@ -12,9 +12,9 @@ interface WorkspaceState {
 }
 
 const defaultConfig: WorkspaceConfig = {
-  baseURL: 'https://ai.megallm.io',
+  baseURL: '',
   apiKey: '',
-  modelId: 'deepseek-ai/deepseek-v3.1-terminus',
+  modelId: '',
   endpointMode: 'chat',
   headers: {},
   useProxy: false,
@@ -75,13 +75,8 @@ export const useWorkspaceStore = create<WorkspaceState>()(
     }),
     {
       name: 'prompt-debugger-workspace',
-      partialize: (state) => ({
-        config: {
-          ...state.config,
-          apiKey: '', // Don't persist API key by default
-        },
-        params: state.params,
-      }),
+      // 持久化所有配置，包括 API Key
+      // 注意：API Key 存储在浏览器 localStorage 中，请确保安全
     }
   )
 )

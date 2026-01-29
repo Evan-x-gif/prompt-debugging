@@ -1,4 +1,5 @@
 import { Plus, Trash2, GripVertical, ToggleLeft, ToggleRight } from 'lucide-react'
+import { useState, useCallback } from 'react'
 import { usePromptStore } from '@/stores/promptStore'
 import { cn } from '@/lib/utils'
 import { PromptOptimizer } from '@/components/optimizer/PromptOptimizer'
@@ -22,6 +23,45 @@ export function PromptBuilder() {
     updateAssistantPreset,
     removeAssistantPreset,
   } = usePromptStore()
+
+  const [draggingSegmentId, setDraggingSegmentId] = useState<string | null>(null)
+
+  const handleDrop = useCallback((segmentId: string, e: React.DragEvent) => {
+    e.preventDefault()
+    setDraggingSegmentId(null)
+
+    const files = Array.from(e.dataTransfer.files)
+    files.forEach(file => {
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader()
+        reader.onload = async (event) => {
+          const base64 = event.target?.result as string
+          const imageId = `img-${Date.now()}-${Math.random()}`
+          
+          addImageToSegment(segmentId, {
+            id: imageId,
+            type: 'base64',
+            url: base64,
+            filename: file.name,
+            size: file.size,
+            detail: 'auto',
+            status: 'ready',
+          })
+        }
+        reader.readAsDataURL(file)
+      }
+    })
+  }, [addImageToSegment])
+
+  const handleDragOver = useCallback((segmentId: string, e: React.DragEvent) => {
+    e.preventDefault()
+    setDraggingSegmentId(segmentId)
+  }, [])
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setDraggingSegmentId(null)
+  }, [])
 
   return (
     <div className="p-4 space-y-4">
@@ -132,49 +172,66 @@ export function PromptBuilder() {
               </div>
 
               {/* Segment Content */}
-              <textarea
-                value={segment.text}
-                onChange={(e) =>
-                  updateUserSegment(segment.id, { text: e.target.value })
-                }
-                onPaste={(e) => {
-                  // 处理粘贴的图片
-                  const items = Array.from(e.clipboardData.items)
-                  items.forEach(item => {
-                    if (item.type.startsWith('image/')) {
-                      e.preventDefault() // 阻止默认粘贴行为
-                      const file = item.getAsFile()
-                      if (file) {
-                        // 调用 ImageUploader 的处理逻辑
-                        const reader = new FileReader()
-                        reader.onload = async (event) => {
-                          const base64 = event.target?.result as string
-                          const imageId = `img-${Date.now()}`
-                          
-                          // 添加图片到当前段落
-                          addImageToSegment(segment.id, {
-                            id: imageId,
-                            type: 'base64',
-                            url: base64,
-                            filename: file.name || 'pasted-image.png',
-                            size: file.size,
-                            detail: 'auto',
-                            status: 'ready',
-                          })
-                        }
-                        reader.readAsDataURL(file)
-                      }
-                    }
-                  })
-                }}
+              <div
                 className={cn(
-                  'w-full h-24 px-3 py-2 text-sm font-mono',
-                  'bg-background border-none',
-                  'focus:outline-none',
-                  'resize-y'
+                  'relative',
+                  draggingSegmentId === segment.id && 'ring-2 ring-blue-500 ring-inset'
                 )}
-                placeholder="输入用户消息内容... (支持粘贴图片)"
-              />
+                onDrop={(e) => handleDrop(segment.id, e)}
+                onDragOver={(e) => handleDragOver(segment.id, e)}
+                onDragLeave={handleDragLeave}
+              >
+                <textarea
+                  value={segment.text}
+                  onChange={(e) =>
+                    updateUserSegment(segment.id, { text: e.target.value })
+                  }
+                  onPaste={(e) => {
+                    // 处理粘贴的图片
+                    const items = Array.from(e.clipboardData.items)
+                    items.forEach(item => {
+                      if (item.type.startsWith('image/')) {
+                        e.preventDefault() // 阻止默认粘贴行为
+                        const file = item.getAsFile()
+                        if (file) {
+                          // 调用 ImageUploader 的处理逻辑
+                          const reader = new FileReader()
+                          reader.onload = async (event) => {
+                            const base64 = event.target?.result as string
+                            const imageId = `img-${Date.now()}`
+                            
+                            // 添加图片到当前段落
+                            addImageToSegment(segment.id, {
+                              id: imageId,
+                              type: 'base64',
+                              url: base64,
+                              filename: file.name || 'pasted-image.png',
+                              size: file.size,
+                              detail: 'auto',
+                              status: 'ready',
+                            })
+                          }
+                          reader.readAsDataURL(file)
+                        }
+                      }
+                    })
+                  }}
+                  className={cn(
+                    'w-full h-40 px-3 py-2 text-sm font-mono',
+                    'bg-background border-none',
+                    'focus:outline-none',
+                    'resize-y'
+                  )}
+                  placeholder="输入用户消息内容... (支持粘贴图片、拖拽图片)"
+                />
+                {draggingSegmentId === segment.id && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-blue-50/90 dark:bg-blue-900/30 pointer-events-none">
+                    <div className="text-sm text-blue-600 dark:text-blue-400 font-medium">
+                      释放以添加图片
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* Image Uploader */}
               <div className="px-3 pb-2">

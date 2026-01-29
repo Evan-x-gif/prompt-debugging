@@ -6,7 +6,27 @@
 
 ## 🚀 快速开始
 
-### 1. 使用 Windsurf AI 助手
+### 1. 配置 API（首次使用必须）
+
+本项目需要配置 API 才能正常使用。有两种配置方式：
+
+#### 方式一：在应用内配置（推荐）
+1. 启动应用后，在设置面板中填入：
+   - API Base URL（如：`https://api.openai.com`）
+   - API Key（你的 API 密钥）
+   - Model ID（如：`gpt-4`）
+2. 配置会自动保存在浏览器 localStorage 中
+
+#### 方式二：使用环境变量（可选）
+1. 复制 `.env.example` 为 `.env`
+2. 填入你的实际配置
+3. 重启开发服务器
+
+**⚠️ 安全提醒**：
+- 请勿将包含真实 API Key 的 `.env` 文件提交到 Git
+- `.gitignore` 已配置忽略 `.env` 文件
+
+### 2. 使用 Windsurf AI 助手
 
 在 Windsurf 中，您可以使用以下斜杠命令来进行规范驱动开发：
 
@@ -16,7 +36,7 @@
 - `/speckit.tasks` - 从实施计划创建可操作的任务列表
 - `/speckit.implement` - 执行所有任务并根据计划构建功能
 
-### 2. 开发流程
+### 3. 开发流程
 
 1. **建立项目原则** - 使用 `/speckit.constitution` 创建指导原则
 2. **创建规范** - 使用 `/speckit.specify` 描述功能需求

@@ -26,6 +26,7 @@ const ALLOWED_DOMAINS = [
   'api.moonshot.cn',
   'api.groq.com',
   'ai.megallm.io',
+  'api.qnaigc.com',
   'localhost',
   '127.0.0.1',
 ]
@@ -57,6 +58,8 @@ app.use('/api/proxy', (req, res, next) => {
     target: new URL(target).origin,
     changeOrigin: true,
     pathRewrite: () => new URL(target).pathname,
+    timeout: 120000, // 120 seconds timeout
+    proxyTimeout: 120000,
     onProxyReq: (proxyReq, req) => {
       // Add Authorization header if API key provided
       if (apiKey) {

@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, lazy, Suspense } from 'react'
 import { Copy, Check, AlertCircle, Clock, Coins, DollarSign } from 'lucide-react'
+import JsonView from '@uiw/react-json-view'
 import { useRunStore } from '@/stores/runStore'
 import { useHistoryStore } from '@/stores/historyStore'
 import { useWorkspaceStore } from '@/stores/workspaceStore'
@@ -9,13 +10,16 @@ import { cn, copyToClipboard, formatJSON } from '@/lib/utils'
 import { calculateCost, formatCost } from '@/lib/pricing'
 import { SSEViewer } from './SSEViewer'
 
+// Lazy load Markdown renderer
+const MarkdownRenderer = lazy(() => import('./MarkdownRenderer'))
+
 interface OutputPanelProps {
   activeTab: 'output' | 'compare' | 'raw' | 'sse'
   onTabChange: (tab: 'output' | 'compare' | 'raw' | 'sse') => void
 }
 
 export function OutputPanel({ activeTab, onTabChange }: OutputPanelProps) {
-  const { isRunning, currentOutput, currentRecord, error } = useRunStore()
+  const { isRunning, currentOutput, currentReasoning, currentRecord, error } = useRunStore()
   const { records, selectedIds } = useHistoryStore()
   const { config, params } = useWorkspaceStore()
   const { draft } = usePromptStore()
@@ -49,6 +53,7 @@ export function OutputPanel({ activeTab, onTabChange }: OutputPanelProps) {
           <OutputTab
             isRunning={isRunning}
             output={currentOutput}
+            reasoning={currentReasoning}
             record={currentRecord}
             error={error}
           />
@@ -80,15 +85,23 @@ function SSETab() {
 interface OutputTabProps {
   isRunning: boolean
   output: string
+  reasoning: string
   record: ReturnType<typeof useRunStore.getState>['currentRecord']
   error: string | null
 }
 
-function OutputTab({ isRunning, output, record, error }: OutputTabProps) {
+function OutputTab({ isRunning, output, reasoning, record, error }: OutputTabProps) {
   const [copied, setCopied] = useState(false)
+  const [showReasoning, setShowReasoning] = useState(false)
 
   const handleCopy = async () => {
     await copyToClipboard(output)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleCopyReasoning = async () => {
+    await copyToClipboard(reasoning)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -201,16 +214,89 @@ function OutputTab({ isRunning, output, record, error }: OutputTabProps) {
         </div>
       )}
 
+      {/* Reasoning Content (Collapsible) */}
+      {reasoning && (
+        <div className="relative">
+          <button
+            onClick={() => setShowReasoning(!showReasoning)}
+            className={cn(
+              'w-full p-3 rounded-lg border border-purple-200 dark:border-purple-800/50',
+              'bg-gradient-to-br from-purple-50/80 to-indigo-50/80 dark:from-purple-900/20 dark:to-indigo-900/20',
+              'flex items-center justify-between',
+              'hover:bg-purple-100/50 dark:hover:bg-purple-900/30 transition-colors',
+              'text-left'
+            )}
+          >
+            <div className="flex items-center gap-2">
+              <svg
+                className={cn(
+                  'w-4 h-4 transition-transform',
+                  showReasoning ? 'rotate-90' : ''
+                )}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+              <span className="text-sm font-medium text-purple-700 dark:text-purple-300">
+                思考过程
+              </span>
+              <span className="px-1.5 py-0.5 text-xs rounded bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300">
+                {reasoning.length} 字符
+              </span>
+            </div>
+            {!isRunning && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleCopyReasoning()
+                }}
+                className={cn(
+                  'p-1.5 rounded-md',
+                  'bg-background/80 hover:bg-background border border-border',
+                  'transition-colors'
+                )}
+                title="复制思考过程"
+              >
+                {copied ? (
+                  <Check className="w-3 h-3 text-green-500" />
+                ) : (
+                  <Copy className="w-3 h-3" />
+                )}
+              </button>
+            )}
+          </button>
+          
+          {showReasoning && (
+            <div
+              className={cn(
+                'mt-2 p-4 rounded-lg border border-purple-200 dark:border-purple-800/50',
+                'bg-gradient-to-br from-purple-50/80 to-indigo-50/80 dark:from-purple-900/20 dark:to-indigo-900/20',
+                'prose prose-sm dark:prose-invert max-w-none',
+                'break-words overflow-wrap-anywhere',
+                'whitespace-pre-wrap font-mono text-xs'
+              )}
+            >
+              {reasoning}
+              {isRunning && <span className="animate-pulse">▊</span>}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Output Content */}
       <div className="relative">
         <div
           className={cn(
             'p-4 rounded-lg border border-violet-200 dark:border-violet-800/50 bg-gradient-to-br from-white/80 to-violet-50/80 dark:from-violet-900/20 dark:to-indigo-900/20',
             'prose prose-sm dark:prose-invert max-w-none',
-            'whitespace-pre-wrap font-mono text-sm'
+            'break-words overflow-wrap-anywhere'
           )}
         >
-          {output}
+          <Suspense fallback={<div className="whitespace-pre-wrap">{output}</div>}>
+            <MarkdownRenderer content={output} />
+          </Suspense>
           {isRunning && <span className="animate-pulse">▊</span>}
         </div>
 
@@ -250,9 +336,9 @@ function CompareTab({ records, selectedIds }: CompareTabProps) {
     .filter(Boolean)
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="h-full flex flex-col p-4 space-y-4">
       {/* Record Selection */}
-      <div className="space-y-2">
+      <div className="space-y-2 shrink-0">
         <label className="text-sm font-medium">选择要对比的运行记录（最多 2 个）</label>
         <div className="flex flex-wrap gap-2">
           {records.slice(0, 10).map((record) => (
@@ -279,26 +365,28 @@ function CompareTab({ records, selectedIds }: CompareTabProps) {
 
       {/* Comparison View */}
       {selectedRecords.length === 2 ? (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="flex-1 grid grid-cols-2 gap-4 min-h-0">
           {selectedRecords.map((record, index) => (
-            <div key={record!.id} className="space-y-2">
-              <div className="text-sm font-medium">
+            <div key={record!.id} className="flex flex-col space-y-2 min-h-0">
+              <div className="text-sm font-medium shrink-0">
                 Run {index + 1} •{' '}
                 {new Date(record!.createdAt).toLocaleTimeString()}
               </div>
-              <div className="p-3 rounded-lg border border-border bg-muted/30 text-sm font-mono whitespace-pre-wrap max-h-64 overflow-auto">
+              <div className="flex-1 p-3 rounded-lg border border-border bg-muted/30 text-sm font-mono whitespace-pre-wrap overflow-auto">
                 {record!.outputText || '(empty)'}
               </div>
-              <div className="text-xs text-muted-foreground">
+              <div className="text-xs text-muted-foreground shrink-0">
                 {record!.metrics.latencyMs}ms • {record!.metrics.totalTokens} tokens
               </div>
             </div>
           ))}
         </div>
       ) : (
-        <p className="text-sm text-muted-foreground">
-          从历史记录中选择 2 次运行来对比其输出
-        </p>
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-sm text-muted-foreground">
+            从历史记录中选择 2 次运行来对比其输出
+          </p>
+        </div>
       )}
     </div>
   )
@@ -352,21 +440,67 @@ function RawTab({ record, config, params, draft }: RawTabProps) {
       <div className="flex-1 overflow-auto p-4">
         <div className="relative">
           {subTab === 'request' && (
-            <pre className="p-4 rounded-lg bg-muted/30 text-sm font-mono whitespace-pre-wrap overflow-x-auto">
-              {record
-                ? formatJSON(record.compiledRequestJson)
-                : '运行请求查看编译后的 JSON'}
-            </pre>
+            <div className="p-4 rounded-lg bg-muted/30">
+              {record ? (
+                <JsonView
+                  value={record.compiledRequestJson}
+                  collapsed={2}
+                  displayDataTypes={false}
+                  displayObjectSize={true}
+                  enableClipboard={true}
+                  style={{
+                    '--w-rjv-background-color': 'transparent',
+                    '--w-rjv-font-family': 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                    '--w-rjv-font-size': '0.875rem',
+                    '--w-rjv-key-string': '#0ea5e9',
+                    '--w-rjv-type-string-color': '#10b981',
+                    '--w-rjv-type-int-color': '#f59e0b',
+                    '--w-rjv-type-float-color': '#f59e0b',
+                    '--w-rjv-type-boolean-color': '#8b5cf6',
+                    '--w-rjv-type-null-color': '#6b7280',
+                    '--w-rjv-brackets-color': '#64748b',
+                    '--w-rjv-arrow-color': '#94a3b8',
+                    '--w-rjv-colon-color': '#64748b',
+                    '--w-rjv-quotes-string-color': '#10b981',
+                  } as React.CSSProperties}
+                />
+              ) : (
+                <p className="text-sm text-muted-foreground">运行请求查看编译后的 JSON</p>
+              )}
+            </div>
           )}
 
           {subTab === 'response' && (
-            <pre className="p-4 rounded-lg bg-muted/30 text-sm font-mono whitespace-pre-wrap overflow-x-auto">
-              {record?.responseJson
-                ? formatJSON(record.responseJson)
-                : record
-                ? '(流式响应 - 无 JSON 主体)'
-                : '运行请求查看响应'}
-            </pre>
+            <div className="p-4 rounded-lg bg-muted/30">
+              {record?.responseJson ? (
+                <JsonView
+                  value={record.responseJson}
+                  collapsed={2}
+                  displayDataTypes={false}
+                  displayObjectSize={true}
+                  enableClipboard={true}
+                  style={{
+                    '--w-rjv-background-color': 'transparent',
+                    '--w-rjv-font-family': 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                    '--w-rjv-font-size': '0.875rem',
+                    '--w-rjv-key-string': '#0ea5e9',
+                    '--w-rjv-type-string-color': '#10b981',
+                    '--w-rjv-type-int-color': '#f59e0b',
+                    '--w-rjv-type-float-color': '#f59e0b',
+                    '--w-rjv-type-boolean-color': '#8b5cf6',
+                    '--w-rjv-type-null-color': '#6b7280',
+                    '--w-rjv-brackets-color': '#64748b',
+                    '--w-rjv-arrow-color': '#94a3b8',
+                    '--w-rjv-colon-color': '#64748b',
+                    '--w-rjv-quotes-string-color': '#10b981',
+                  } as React.CSSProperties}
+                />
+              ) : record ? (
+                <p className="text-sm text-muted-foreground">(流式响应 - 无 JSON 主体)</p>
+              ) : (
+                <p className="text-sm text-muted-foreground">运行请求查看响应</p>
+              )}
+            </div>
           )}
 
           {subTab === 'headers' && (

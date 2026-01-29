@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
-import { Image, Upload, Link, X, Loader2, AlertCircle } from 'lucide-react'
+import { Image, Link, X, Loader2, AlertCircle } from 'lucide-react'
 import type { ImageContent } from '@/types'
 import { generateId } from '@/lib/utils'
 import { cn } from '@/lib/utils'
@@ -21,7 +21,6 @@ export function ImageUploader({
   onUpdateImage,
   onRemoveImage,
 }: ImageUploaderProps) {
-  const [isDragging, setIsDragging] = useState(false)
   const [showUrlInput, setShowUrlInput] = useState(false)
   const [urlInput, setUrlInput] = useState('')
   const [urlError, setUrlError] = useState('')
@@ -72,42 +71,10 @@ export function ImageUploader({
     }
   }, [onAddImage, onUpdateImage])
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
-
-    const files = Array.from(e.dataTransfer.files)
-    files.forEach(file => {
-      if (file.type.startsWith('image/')) {
-        processFile(file)
-      }
-    })
-  }, [processFile])
-
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(true)
-  }, [])
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
-  }, [])
-
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
     files.forEach(processFile)
     e.target.value = '' // 重置以允许重复选择同一文件
-  }, [processFile])
-
-  const handlePaste = useCallback((e: React.ClipboardEvent) => {
-    const items = Array.from(e.clipboardData.items)
-    items.forEach(item => {
-      if (item.type.startsWith('image/')) {
-        const file = item.getAsFile()
-        if (file) processFile(file)
-      }
-    })
   }, [processFile])
 
   const handleAddUrl = useCallback(async () => {
@@ -147,50 +114,7 @@ export function ImageUploader({
     }
   }, [urlInput, onAddImage, onUpdateImage])
 
-  if (images.length === 0 && !showUrlInput) {
-    return (
-      <div
-        className={cn(
-          'mt-2 p-3 rounded-lg border-2 border-dashed transition-colors cursor-pointer',
-          isDragging
-            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-            : 'border-border hover:border-violet-400 hover:bg-violet-50/50 dark:hover:bg-violet-900/10'
-        )}
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onPaste={handlePaste}
-        onClick={() => fileInputRef.current?.click()}
-      >
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          multiple
-          className="hidden"
-          onChange={handleFileSelect}
-        />
-        <div className="flex flex-col items-center gap-1 text-muted-foreground text-xs">
-          <Upload className="w-5 h-5" />
-          <span>拖拽图片或点击上传</span>
-          <span className="text-[10px]">支持 JPG, PNG, GIF, WebP</span>
-        </div>
-        <div className="flex justify-center mt-2">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation()
-              setShowUrlInput(true)
-            }}
-            className="flex items-center gap-1 text-xs text-violet-600 hover:text-violet-700"
-          >
-            <Link className="w-3 h-3" />
-            使用 URL
-          </button>
-        </div>
-      </div>
-    )
-  }
+  // 始终显示紧凑的按钮布局，不显示大的拖拽区域
 
   return (
     <div className="mt-2 space-y-2">
@@ -224,7 +148,46 @@ export function ImageUploader({
         />
       )}
 
-      {/* 添加更多 */}
+      {/* URL 输入框 */}
+      {showUrlInput && (
+        <div className="flex gap-2">
+          <input
+            type="url"
+            value={urlInput}
+            onChange={(e) => setUrlInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleAddUrl()}
+            placeholder="https://example.com/image.jpg"
+            className={cn(
+              'flex-1 px-2 py-1 rounded text-xs',
+              'bg-background border border-input',
+              'focus:outline-none focus:ring-2 focus:ring-ring',
+              urlError && 'border-red-500'
+            )}
+            autoFocus
+          />
+          <button
+            type="button"
+            onClick={handleAddUrl}
+            className="px-2 py-1 rounded text-xs bg-violet-600 text-white hover:bg-violet-700"
+          >
+            添加
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setShowUrlInput(false)
+              setUrlInput('')
+              setUrlError('')
+            }}
+            className="px-2 py-1 rounded text-xs border border-border hover:bg-accent"
+          >
+            取消
+          </button>
+        </div>
+      )}
+      {urlError && <p className="text-xs text-red-500">{urlError}</p>}
+
+      {/* 紧凑的添加按钮 - 始终显示 */}
       <div className="flex items-center gap-2">
         <button
           type="button"
@@ -259,44 +222,6 @@ export function ImageUploader({
           onChange={handleFileSelect}
         />
       </div>
-
-      {/* URL 输入 */}
-      {showUrlInput && (
-        <div className="flex gap-2">
-          <input
-            type="url"
-            value={urlInput}
-            onChange={(e) => setUrlInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleAddUrl()}
-            placeholder="https://example.com/image.jpg"
-            className={cn(
-              'flex-1 px-2 py-1 rounded text-xs',
-              'bg-background border border-input',
-              'focus:outline-none focus:ring-2 focus:ring-ring',
-              urlError && 'border-red-500'
-            )}
-          />
-          <button
-            type="button"
-            onClick={handleAddUrl}
-            className="px-2 py-1 rounded text-xs bg-violet-600 text-white hover:bg-violet-700"
-          >
-            添加
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setShowUrlInput(false)
-              setUrlInput('')
-              setUrlError('')
-            }}
-            className="px-2 py-1 rounded text-xs border border-border hover:bg-accent"
-          >
-            取消
-          </button>
-        </div>
-      )}
-      {urlError && <p className="text-xs text-red-500">{urlError}</p>}
     </div>
   )
 }

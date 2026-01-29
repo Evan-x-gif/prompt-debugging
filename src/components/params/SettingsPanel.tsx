@@ -4,6 +4,7 @@ import { useWorkspaceStore } from '@/stores/workspaceStore'
 import { cn } from '@/lib/utils'
 import { StructuredOutputPanel } from './StructuredOutputPanel'
 import { ToolsPanel } from './ToolsPanel'
+import { ParamPresetsPanel } from './ParamPresetsPanel'
 
 export function SettingsPanel() {
   const { config, params, setConfig, setParams } = useWorkspaceStore()
@@ -20,6 +21,9 @@ export function SettingsPanel() {
 
   return (
     <div className="p-4 space-y-4">
+      {/* Param Presets Panel */}
+      <ParamPresetsPanel />
+
       {/* Connection Section */}
       <Section
         title="连接配置"
@@ -38,7 +42,7 @@ export function SettingsPanel() {
               'bg-background border border-input',
               'focus:outline-none focus:ring-2 focus:ring-ring'
             )}
-            placeholder="https://api.openai.com"
+            placeholder="https://api.qnaigc.com"
           />
         </div>
 
@@ -331,7 +335,10 @@ export function SettingsPanel() {
         {config.endpointMode === 'chat' && (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-sm font-medium">输出 Token 概率</label>
+              <div>
+                <label className="text-sm font-medium">输出 Token 概率</label>
+                <p className="text-xs text-muted-foreground">仅 OpenAI/Anthropic 官方模型支持</p>
+              </div>
               <button
                 onClick={() => setParams({ logprobs: !params.logprobs })}
                 className={cn(
@@ -348,21 +355,29 @@ export function SettingsPanel() {
               </button>
             </div>
             {params.logprobs && (
-              <div className="space-y-1.5">
-                <label className="text-xs text-muted-foreground">Top Logprobs 数量</label>
-                <input
-                  type="number"
-                  min="1"
-                  max="20"
-                  value={params.topLogprobs ?? 5}
-                  onChange={(e) => setParams({ topLogprobs: parseInt(e.target.value) || null })}
-                  className={cn(
-                    'w-full px-3 py-1.5 rounded-md text-sm',
-                    'bg-background border border-input',
-                    'focus:outline-none focus:ring-2 focus:ring-ring'
-                  )}
-                />
-              </div>
+              <>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-muted-foreground">Top Logprobs 数量</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={params.topLogprobs ?? 5}
+                    onChange={(e) => setParams({ topLogprobs: parseInt(e.target.value) || null })}
+                    className={cn(
+                      'w-full px-3 py-1.5 rounded-md text-sm',
+                      'bg-background border border-input',
+                      'focus:outline-none focus:ring-2 focus:ring-ring'
+                    )}
+                  />
+                </div>
+                <div className="flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-900/20 p-2 rounded">
+                  <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
+                  <span>
+                    <strong>注意：</strong>聚合 API 可能不支持此参数，使用前请确认。
+                  </span>
+                </div>
+              </>
             )}
           </div>
         )}
@@ -370,7 +385,10 @@ export function SettingsPanel() {
         {/* Truncation (Responses API only) */}
         {config.endpointMode === 'responses' && (
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">超上下文处理</label>
+            <div>
+              <label className="text-sm font-medium">超上下文处理</label>
+              <p className="text-xs text-muted-foreground">仅 OpenAI Responses API 支持</p>
+            </div>
             <div className="flex gap-2">
               <button
                 onClick={() => setParams({ truncation: 'auto' })}
@@ -395,27 +413,44 @@ export function SettingsPanel() {
                 禁用（报错）
               </button>
             </div>
+            <div className="flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-900/20 p-2 rounded">
+              <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
+              <span>
+                <strong>注意：</strong>聚合 API 通常不支持此参数。
+              </span>
+            </div>
           </div>
         )}
 
         {/* Store (Responses API only) */}
         {config.endpointMode === 'responses' && (
-          <div className="flex items-center justify-between">
-            <label className="text-sm font-medium">存储响应</label>
-            <button
-              onClick={() => setParams({ store: !params.store })}
-              className={cn(
-                'w-10 h-6 rounded-full transition-colors',
-                params.store ? 'bg-gradient-to-r from-emerald-500 to-teal-500' : 'bg-gray-300 dark:bg-gray-600'
-              )}
-            >
-              <span
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="text-sm font-medium">存储响应</label>
+                <p className="text-xs text-muted-foreground">仅 OpenAI Responses API 支持</p>
+              </div>
+              <button
+                onClick={() => setParams({ store: !params.store })}
                 className={cn(
-                  'block w-4 h-4 rounded-full bg-white transition-transform',
-                  params.store ? 'translate-x-5' : 'translate-x-1'
+                  'w-10 h-6 rounded-full transition-colors',
+                  params.store ? 'bg-gradient-to-r from-emerald-500 to-teal-500' : 'bg-gray-300 dark:bg-gray-600'
                 )}
-              />
-            </button>
+              >
+                <span
+                  className={cn(
+                    'block w-4 h-4 rounded-full bg-white transition-transform',
+                    params.store ? 'translate-x-5' : 'translate-x-1'
+                  )}
+                />
+              </button>
+            </div>
+            <div className="flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-900/20 p-2 rounded">
+              <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
+              <span>
+                <strong>注意：</strong>聚合 API 通常不支持此参数。
+              </span>
+            </div>
           </div>
         )}
 
@@ -449,12 +484,19 @@ export function SettingsPanel() {
               'focus:outline-none focus:ring-2 focus:ring-ring'
             )}
           >
-            <option value="">默认</option>
-            <option value="none">无</option>
-            <option value="low">低</option>
-            <option value="medium">中</option>
-            <option value="high">高</option>
+            <option value="">默认（不使用）</option>
+            <option value="none">无推理</option>
+            <option value="low">低 - 快速响应</option>
+            <option value="medium">中 - 平衡质量</option>
+            <option value="high">高 - 深度思考</option>
           </select>
+          <div className="flex items-start gap-1.5 text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 p-2 rounded">
+            <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
+            <div className="space-y-1">
+              <p><strong>标准推理模型：</strong>OpenAI o1/o3/gpt-5 系列，使用此参数控制推理深度。</p>
+              <p><strong>聚合 API 行为：</strong>部分聚合 API 可能返回 reasoning_content 字段（模型内部思考过程），但行为与标准推理模型不同。</p>
+            </div>
+          </div>
         </div>
       </Section>
 

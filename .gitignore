@@ -56,3 +56,19 @@ temp/
 # Cache
 .cache/
 .parcel-cache/
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Development/Planning files
+findings.md
+progress.md
+task_plan.md
+test-*.html
+test-*.json
+
+# Tool configuration directories
+.cunzhi-memory/
+.kiro/
+.specify/
+.windsurf/

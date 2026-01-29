@@ -5,13 +5,46 @@ import { cn, copyToClipboard } from '@/lib/utils'
 
 const SCHEMA_TEMPLATES = [
   {
-    name: '简单对象',
+    name: '测试用例',
     schema: {
       type: 'object',
       properties: {
-        result: { type: 'string', description: '结果' },
+        title: { type: 'string', description: '用例标题' },
+        description: { type: 'string', description: '用例描述' },
+        steps: {
+          type: 'array',
+          items: { type: 'string' },
+          description: '测试步骤',
+        },
+        expectedResult: { type: 'string', description: '预期结果' },
+        testData: {
+          type: 'object',
+          description: '测试数据',
+          additionalProperties: true,
+        },
       },
-      required: ['result'],
+      required: ['title', 'steps', 'expectedResult'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: '通用结果',
+    schema: {
+      type: 'object',
+      properties: {
+        content: { type: 'string', description: '主要内容' },
+        details: {
+          type: 'array',
+          items: { type: 'string' },
+          description: '详细信息',
+        },
+        metadata: {
+          type: 'object',
+          description: '元数据',
+          additionalProperties: true,
+        },
+      },
+      required: ['content'],
       additionalProperties: false,
     },
   },
@@ -25,6 +58,7 @@ const SCHEMA_TEMPLATES = [
           items: { type: 'string' },
           description: '提取的项目列表',
         },
+        summary: { type: 'string', description: '总结' },
       },
       required: ['items'],
       additionalProperties: false,
@@ -48,7 +82,7 @@ const SCHEMA_TEMPLATES = [
         },
         reason: { type: 'string', description: '分类理由' },
       },
-      required: ['category', 'confidence'],
+      required: ['category', 'confidence', 'reason'],
       additionalProperties: false,
     },
   },
@@ -64,11 +98,14 @@ const SCHEMA_TEMPLATES = [
             properties: {
               name: { type: 'string' },
               type: { type: 'string', enum: ['person', 'organization', 'location', 'other'] },
+              context: { type: 'string', description: '上下文' },
             },
             required: ['name', 'type'],
             additionalProperties: false,
           },
+          description: '提取的实体列表',
         },
+        summary: { type: 'string', description: '总结' },
       },
       required: ['entities'],
       additionalProperties: false,
@@ -86,6 +123,7 @@ const SCHEMA_TEMPLATES = [
           description: '来源引用',
         },
         confidence: { type: 'number', description: '置信度 0-1' },
+        reasoning: { type: 'string', description: '推理过程' },
       },
       required: ['answer'],
       additionalProperties: false,
@@ -199,34 +237,53 @@ export function StructuredOutputPanel() {
           {params.structuredOutput.enabled && (
             <>
               {/* Strict Mode */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="text-sm font-medium">严格模式</label>
-                  <p className="text-xs text-muted-foreground">强制输出完全匹配 Schema</p>
-                </div>
-                <button
-                  onClick={() =>
-                    setParams({
-                      structuredOutput: {
-                        ...params.structuredOutput,
-                        strict: !params.structuredOutput.strict,
-                      },
-                    })
-                  }
-                  className={cn(
-                    'w-10 h-6 rounded-full transition-colors',
-                    params.structuredOutput.strict
-                      ? 'bg-gradient-to-r from-emerald-500 to-teal-500'
-                      : 'bg-gray-300 dark:bg-gray-600'
-                  )}
-                >
-                  <span
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-sm font-medium">严格模式</label>
+                    <p className="text-xs text-muted-foreground">强制输出完全匹配 Schema</p>
+                  </div>
+                  <button
+                    onClick={() =>
+                      setParams({
+                        structuredOutput: {
+                          ...params.structuredOutput,
+                          strict: !params.structuredOutput.strict,
+                        },
+                      })
+                    }
                     className={cn(
-                      'block w-4 h-4 rounded-full bg-white transition-transform',
-                      params.structuredOutput.strict ? 'translate-x-5' : 'translate-x-1'
+                      'w-10 h-6 rounded-full transition-colors',
+                      params.structuredOutput.strict
+                        ? 'bg-gradient-to-r from-emerald-500 to-teal-500'
+                        : 'bg-gray-300 dark:bg-gray-600'
                     )}
-                  />
-                </button>
+                  >
+                    <span
+                      className={cn(
+                        'block w-4 h-4 rounded-full bg-white transition-transform',
+                        params.structuredOutput.strict ? 'translate-x-5' : 'translate-x-1'
+                      )}
+                    />
+                  </button>
+                </div>
+                <div className="flex items-start gap-1.5 text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 p-2 rounded">
+                  <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
+                  <span>
+                    <strong>模型要求：</strong>严格模式需要模型支持 JSON Schema。OpenAI GPT-4o/4o-mini、Anthropic Claude 3.5+ 等新模型完全支持。
+                    部分聚合 API 也支持此功能。
+                  </span>
+                </div>
+                {params.structuredOutput.strict && (
+                  <div className="flex items-start gap-1.5 text-xs text-yellow-600 dark:text-yellow-500 bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded">
+                    <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
+                    <span>
+                      <strong>注意：</strong>严格模式会在 Token 级别强制执行 Schema。
+                      如果 Schema 过于简单（如只有一个字段），可能导致输出异常。
+                      建议使用包含多个字段的模板。
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Templates */}

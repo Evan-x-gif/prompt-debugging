@@ -27,9 +27,11 @@ function compileUserContent(draft: PromptDraft): string {
   enabledSegments.forEach((seg, index) => {
     // Replace variables
     let text = seg.text
-    Object.entries(draft.variables).forEach(([key, value]) => {
-      text = text.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value)
-    })
+    if (draft.variables) {
+      Object.entries(draft.variables).forEach(([key, value]) => {
+        text = text.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value)
+      })
+    }
 
     result += text
 
@@ -52,9 +54,11 @@ function compileUserContentMultimodal(draft: PromptDraft): MessageContentPart[] 
   enabledSegments.forEach((seg, index) => {
     // Replace variables in text
     let text = seg.text
-    Object.entries(draft.variables).forEach(([key, value]) => {
-      text = text.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value)
-    })
+    if (draft.variables) {
+      Object.entries(draft.variables).forEach(([key, value]) => {
+        text = text.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value)
+      })
+    }
 
     // Add joiner between segments
     if (index < enabledSegments.length - 1) {
@@ -284,7 +288,7 @@ export function compileChatCompletionsRequest(
       request.top_logprobs = params.topLogprobs
     }
   }
-  if (Object.keys(params.logitBias).length > 0) {
+  if (params.logitBias && Object.keys(params.logitBias).length > 0) {
     request.logit_bias = params.logitBias
   }
   if (params.reasoningEffort) {

@@ -15,7 +15,7 @@ export function Layout({ children }: LayoutProps) {
   const { config, params } = useWorkspaceStore()
   const { draft } = usePromptStore()
   const { loadRecords, addRecord } = useHistoryStore()
-  const { isRunning, setRunning, setCurrentOutput, appendOutput, setAbortController, setError, setCurrentRecord, reset, abort } = useRunStore()
+  const { isRunning, setRunning, setCurrentOutput, setCurrentReasoning, appendOutput, appendReasoning, setAbortController, setError, setCurrentRecord, abort, addSSEEvent, clearSSEEvents } = useRunStore()
 
   useEffect(() => {
     loadRecords()
@@ -24,7 +24,14 @@ export function Layout({ children }: LayoutProps) {
   const handleRun = async () => {
     if (isRunning) return
 
-    reset()
+    // 清空之前的输出和错误，但保留 SSE 事件直到新请求开始
+    setCurrentOutput('')
+    setCurrentReasoning('')
+    setError(null)
+    clearSSEEvents()  // 清空旧的 SSE 事件
+    
+    console.log('[DEBUG] 开始运行请求...')
+    
     setRunning(true)
     const controller = new AbortController()
     setAbortController(controller)
@@ -36,14 +43,33 @@ export function Layout({ children }: LayoutProps) {
         config,
         controller.signal,
         {
-          onChunk: (chunk) => appendOutput(chunk),
-          onDone: (fullText) => setCurrentOutput(fullText),
-          onError: (error) => setError(error.message),
+          onChunk: (chunk) => {
+            console.log('[DEBUG] onChunk:', chunk.substring(0, 50))
+            appendOutput(chunk)
+          },
+          onReasoningChunk: (chunk) => {
+            console.log('[DEBUG] onReasoningChunk:', chunk.substring(0, 50))
+            appendReasoning(chunk)
+          },
+          onDone: (fullText) => {
+            console.log('[DEBUG] onDone, 总长度:', fullText.length)
+            setCurrentOutput(fullText)
+          },
+          onError: (error) => {
+            console.log('[DEBUG] onError:', error.message)
+            setError(error.message)
+          },
+          onSSEEvent: (event) => {
+            console.log('[DEBUG] onSSEEvent:', event.type, event.timestamp)
+            addSSEEvent(event)
+          },
         }
       )
+      console.log('[DEBUG] 请求完成，记录:', record)
       setCurrentRecord(record)
       await addRecord(record)
     } catch (error) {
+      console.log('[DEBUG] 请求失败:', error)
       setError((error as Error).message)
     } finally {
       setRunning(false)
