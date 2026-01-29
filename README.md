@@ -1,4 +1,6 @@
 # Prompt Debugger
+<img width="3010" height="1488" alt="c925041e9084f13e4af481f1c494fa08" src="https://github.com/user-attachments/assets/b68a322d-18c4-44d0-86b1-93c7174e8342" />
+
 
 一个强大的 Prompt 调试工具，支持 OpenAI Responses API 和 Chat Completions API，提供 Prompt 多段拼接、流式输出、参数调优、历史对比等功能。
 
